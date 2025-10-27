@@ -20,6 +20,7 @@ const ThemeSwitcher = () => {
         <option value={THEMES.FOREST}>{labels[THEMES.FOREST]}</option>
         <option value={THEMES.SUNRISE}>{labels[THEMES.SUNRISE]}</option>
         <option value={THEMES.OCEAN}>{labels[THEMES.OCEAN]}</option>
+        <option value={THEMES.BLOSSOM}>{labels[THEMES.BLOSSOM]}</option>
       </select>
     </div>
   );

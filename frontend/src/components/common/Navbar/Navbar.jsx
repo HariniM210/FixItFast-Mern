@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useAdminAuth } from '../../../context/AdminAuthContext';
 import ThemeSwitcher from '../ThemeSwitcher/ThemeSwitcher';
+import './Navbar.css';
 
 const Navbar = () => {
   const { user: regularUser, logout: regularLogout } = useAuth();
@@ -17,11 +18,9 @@ const Navbar = () => {
   const { user, logout } = useMemo(() => {
     try {
       if (isLabourArea) {
-        // Prefer labour context user
         if (regularUser?.role === 'labour') return { user: regularUser, logout: regularLogout };
         const cached = JSON.parse(localStorage.getItem('labourUser') || 'null');
         if (cached) return { user: cached, logout: regularLogout };
-        // Fallback to generic user if marked as labour
         if (regularUser?.role) return { user: regularUser, logout: regularLogout };
         return { user: null, logout: regularLogout };
       }
@@ -31,7 +30,6 @@ const Navbar = () => {
         if (cached) return { user: cached, logout: adminLogout };
         return { user: null, logout: adminLogout };
       }
-      // Citizen/general area
       if (regularUser && regularUser.role !== 'labour') return { user: regularUser, logout: regularLogout };
       const cached = JSON.parse(localStorage.getItem('user') || 'null');
       return { user: cached, logout: regularLogout };
@@ -40,110 +38,66 @@ const Navbar = () => {
     }
   }, [isAdminArea, isLabourArea, regularUser, admin, regularLogout, adminLogout]);
 
-  const linkStyle = { color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: '500' };
+  const isActive = (path) => location.pathname === path;
 
   const handleLogout = () => {
     logout();
     navigate('/', { replace: true });
   };
 
-  // Google Translate script
-  useEffect(() => {
-    if (!document.getElementById("google-translate-script")) {
-      window.googleTranslateElementInit = () => {
-        new window.google.translate.TranslateElement(
-          {
-            pageLanguage: "en",
-            includedLanguages: "en,ta,hi,te,ml,kn,ur,gu",
-            layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE,
-          },
-          "google_translate_element"
-        );
-      };
-
-      const script = document.createElement("script");
-      script.id = "google-translate-script";
-      script.src =
-        "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
-      document.body.appendChild(script);
-    }
-  }, []);
+  // Language selector removed per request
 
   return (
-    <nav style={{
-      background: 'var(--navbar-bg, var(--background-white))',
-      padding: '1rem 2rem',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      borderBottom: '1px solid var(--border-color)'
-    }}>
-      <Link to="/" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--primary-color)', textDecoration: 'none' }}>
-        FixItFast
-      </Link>
+    <nav className="app-nav">
+      <div className="nav-inner">
+        <Link to="/" className="brand" aria-label="Home">
+          <img src="/Images/LOGO.png" alt="Logo" className="brand-logo" onError={(e)=>{e.currentTarget.style.display='none'}} />
+        </Link>
 
-      <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-        {isLabourArea ? (
-          <>
-            <Link to="/labour/dashboard" style={linkStyle}>Dashboard</Link>
-            <Link to="/labour/assigned-complaints" style={linkStyle}>Assigned Complaints</Link>
-            <Link to="/labour/attendance" style={linkStyle}>Attendance</Link>
-            <Link to="/labour/profile" style={linkStyle}>Profile</Link>
-          </>
-        ) : isAdminArea ? (
-          <>
-            <Link to="/admin/dashboard" style={linkStyle}>Dashboard</Link>
-            <Link to="/admin/manage-complaints" style={linkStyle}>Manage Complaints</Link>
-            <Link to="/admin/assign-complaint" style={linkStyle}>Assign Complaints</Link>
-            <Link to="/admin/assigned-status" style={linkStyle}>Assigned Status</Link>
-            <Link to="/admin/labours" style={linkStyle}>Labour Details</Link>
-            <Link to="/admin/create-labour" style={linkStyle}>Create Labour</Link>
-            <Link to="/admin/attendance" style={linkStyle}>Attendance</Link>
-            <Link to="/admin/profile" style={linkStyle}>Profile</Link>
-            {(user?.role === 'superadmin') && (
-              <>
-                <Link to="/admin/super-dashboard" style={linkStyle}>Super Dashboard</Link>
-                <Link to="/admin/users" style={linkStyle}>Manage Users</Link>
-                <Link to="/admin/admins" style={linkStyle}>Manage Admins</Link>
-              </>
-            )}
-          </>
-        ) : (
-          <>
-            <Link to="/dashboard" style={linkStyle}>Dashboard</Link>
-            <Link to="/lodge-complaint" style={linkStyle}>Lodge Complaint</Link>
-            <Link to="/track-status" style={linkStyle}>Track Status</Link>
-            <Link to="/my-complaints" style={linkStyle}>My Complaints</Link>
-            <Link to="/community-feed" style={linkStyle}>Community</Link>
-            <Link to="/citizen/profile" style={linkStyle}>Profile</Link>
-          </>
-        )}
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <ThemeSwitcher />
-          <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            Welcome, {user?.name || 'Guest'}
-          </span>
-          {(user) && (
-            <button
-              onClick={handleLogout}
-              style={{
-                background: 'var(--error-color)',
-                color: 'white',
-                border: 'none',
-                padding: '0.5rem 1rem',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '0.9rem',
-                fontWeight: '500'
-              }}
-            >
-              Logout
-            </button>
+        <div className="nav-links">
+          {isLabourArea ? (
+            <>
+              <Link to="/labour/dashboard" className={`nav-link ${isActive('/labour/dashboard') ? 'active' : ''}`}>Dashboard</Link>
+              <Link to="/labour/assigned-complaints" className={`nav-link ${isActive('/labour/assigned-complaints') ? 'active' : ''}`}>Assigned Complaints</Link>
+              <Link to="/labour/attendance" className={`nav-link ${isActive('/labour/attendance') ? 'active' : ''}`}>Attendance</Link>
+              <Link to="/labour/profile" className={`nav-link ${isActive('/labour/profile') ? 'active' : ''}`}>Profile</Link>
+            </>
+          ) : isAdminArea ? (
+            <>
+              <Link to="/admin/dashboard" className={`nav-link ${isActive('/admin/dashboard') ? 'active' : ''}`}>Dashboard</Link>
+              <Link to="/admin/manage-complaints" className={`nav-link ${isActive('/admin/manage-complaints') ? 'active' : ''}`}>Manage Complaints</Link>
+              <Link to="/admin/assign-complaint" className={`nav-link ${isActive('/admin/assign-complaint') ? 'active' : ''}`}>Assign Complaints</Link>
+              <Link to="/admin/assigned-status" className={`nav-link ${isActive('/admin/assigned-status') ? 'active' : ''}`}>Assigned Status</Link>
+              <Link to="/admin/labours" className={`nav-link ${isActive('/admin/labours') ? 'active' : ''}`}>Labour Details</Link>
+              <Link to="/admin/create-labour" className={`nav-link ${isActive('/admin/create-labour') ? 'active' : ''}`}>Create Labour</Link>
+              <Link to="/admin/attendance" className={`nav-link ${isActive('/admin/attendance') ? 'active' : ''}`}>Attendance</Link>
+              <Link to="/admin/profile" className={`nav-link ${isActive('/admin/profile') ? 'active' : ''}`}>Profile</Link>
+              {user?.role === 'superadmin' && (
+                <>
+                  <Link to="/admin/super-dashboard" className={`nav-link ${isActive('/admin/super-dashboard') ? 'active' : ''}`}>Super Dashboard</Link>
+                  <Link to="/admin/users" className={`nav-link ${isActive('/admin/users') ? 'active' : ''}`}>Manage Users</Link>
+                  <Link to="/admin/admins" className={`nav-link ${isActive('/admin/admins') ? 'active' : ''}`}>Manage Admins</Link>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <Link to="/dashboard" className={`nav-link ${isActive('/dashboard') ? 'active' : ''}`}>Dashboard</Link>
+              <Link to="/lodge-complaint" className={`nav-link ${isActive('/lodge-complaint') ? 'active' : ''}`}>Lodge Complaint</Link>
+              <Link to="/track-status" className={`nav-link ${isActive('/track-status') ? 'active' : ''}`}>Track Status</Link>
+              <Link to="/my-complaints" className={`nav-link ${isActive('/my-complaints') ? 'active' : ''}`}>My Complaints</Link>
+              <Link to="/community-feed" className={`nav-link ${isActive('/community-feed') ? 'active' : ''}`}>Feedback</Link>
+              <Link to="/citizen/profile" className={`nav-link ${isActive('/citizen/profile') ? 'active' : ''}`}>Profile</Link>
+            </>
           )}
-          {/* Google Translate Dropdown */}
-          <div id="google_translate_element"></div>
+        </div>
+
+        <div className="nav-actions">
+          <ThemeSwitcher />
+          <span className="welcome">Welcome, {user?.name || 'Guest'}</span>
+          {user && (
+            <button onClick={handleLogout} className="btn-logout">Logout</button>
+          )}
         </div>
       </div>
     </nav>

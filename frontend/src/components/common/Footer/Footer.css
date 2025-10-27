@@ -1,0 +1,55 @@
+/* Premium Footer */
+.app-footer {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--background-white) 80%, transparent), var(--background-white));
+  border-top: 1px solid var(--border-color);
+  margin-top: auto;
+}
+
+.footer-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.footer-brand .brand-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  font-weight: 800;
+}
+
+.brand-name {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.brand-tag {
+  color: var(--text-light);
+  font-size: 0.9rem;
+}
+
+.footer-meta {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 700px) {
+  .footer-inner {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}

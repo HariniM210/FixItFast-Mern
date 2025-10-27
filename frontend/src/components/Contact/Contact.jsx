@@ -1,16 +1,17 @@
 // frontend/src/components/Contact/Contact.jsx
 import React, { useState, useEffect } from 'react';
 import emailjs from '@emailjs/browser';
+import { EMAILJS_CONFIG, isEmailJsConfigured } from '../../config/emailjs';
 import './Contact.css';
 
 const Contact = () => {
     // Initialize EmailJS when component mounts
     useEffect(() => {
-        if (import.meta.env.VITE_EMAILJS_PUBLIC_KEY) {
-            emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY);
-            console.log('EmailJS initialized with key:', import.meta.env.VITE_EMAILJS_PUBLIC_KEY);
+        if (isEmailJsConfigured) {
+            emailjs.init(EMAILJS_CONFIG.publicKey);
+            console.log('EmailJS initialized with key:', EMAILJS_CONFIG.publicKey?.slice(0,4) + '***');
         } else {
-            console.error('EmailJS public key not found in environment variables');
+            console.warn('EmailJS not configured. Set VITE_EMAILJS_PUBLIC_KEY, VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_TEMPLATE_ID in .env.local');
         }
     }, []);
     const [formData, setFormData] = useState({
@@ -80,12 +81,13 @@ const Contact = () => {
         setAlert({ show: false, type: '', message: '' });
 
         try {
+            if (!isEmailJsConfigured) {
+                setAlert({ show: true, type: 'error', message: 'Email service is not configured. Please try again later.' });
+                setLoading(false);
+                return;
+            }
             // Debug: Check environment variables
-            console.log('EmailJS Config:', {
-                serviceId: import.meta.env.VITE_EMAILJS_SERVICE_ID,
-                templateId: import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-                publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY
-            });
+            console.log('EmailJS Config:', EMAILJS_CONFIG);
 
             // Map form data to EmailJS template variables
             const templateParams = {
@@ -100,8 +102,8 @@ const Contact = () => {
 
             // Send email using EmailJS
             const result = await emailjs.send(
-                import.meta.env.VITE_EMAILJS_SERVICE_ID,
-                import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+                EMAILJS_CONFIG.serviceId,
+                EMAILJS_CONFIG.templateId,
                 templateParams
             );
             

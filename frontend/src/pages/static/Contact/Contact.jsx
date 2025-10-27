@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import emailjs from '@emailjs/browser';
+import { EMAILJS_CONFIG, isEmailJsConfigured } from '../../../config/emailjs';
 import './Contact.css';
-import TestEmailJS from '../../../TestEmailJS';
 
 const Contact = () => {
   // Initialize EmailJS when component mounts
   useEffect(() => {
-    if (import.meta.env.VITE_EMAILJS_PUBLIC_KEY) {
-      emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY);
+    if (isEmailJsConfigured) {
+      emailjs.init(EMAILJS_CONFIG.publicKey);
       console.log('EmailJS initialized');
     } else {
-      console.error('EmailJS public key not found in environment variables');
+      console.warn('EmailJS not configured. Set VITE_EMAILJS_PUBLIC_KEY, VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_TEMPLATE_ID in .env.local');
     }
   }, []);
 
@@ -77,11 +77,13 @@ const Contact = () => {
     
     try {
       // Debug: Check environment variables
-      console.log('EmailJS Config:', {
-        serviceId: import.meta.env.VITE_EMAILJS_SERVICE_ID,
-        templateId: import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-        publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY
-      });
+      if (!isEmailJsConfigured) {
+        setSubmitStatus('error');
+        setSubmitMessage('Email service is not configured. Please try again later.');
+        setIsSubmitting(false);
+        return;
+      }
+      console.log('EmailJS Config:', EMAILJS_CONFIG);
 
       // Map form data to EmailJS template variables
       const templateParams = {
@@ -96,8 +98,8 @@ const Contact = () => {
 
       // Send email using EmailJS
       const result = await emailjs.send(
-        import.meta.env.VITE_EMAILJS_SERVICE_ID,
-        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        EMAILJS_CONFIG.serviceId,
+        EMAILJS_CONFIG.templateId,
         templateParams
       );
       
@@ -130,7 +132,6 @@ const Contact = () => {
 
   return (
     <div className="contact-container">
-      <TestEmailJS />
       <div className="contact-hero">
         <h1>Contact Us</h1>
         <p>We'd love to hear from you</p>

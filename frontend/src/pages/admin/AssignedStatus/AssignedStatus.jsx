@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { adminAPI, apiHelpers } from '../../../services/api';
+import { adminAPI, apiHelpers, complaintsAPI } from '../../../services/api';
 import './AssignedStatus.css';
 
 // Admin page: Assigned Complaint Status (short: Assigned Status)
@@ -10,6 +10,8 @@ const AssignedStatus = () => {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState(''); // '', 'Assigned', 'In Progress', 'Completed'
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [progressMap, setProgressMap] = useState({}); // { complaintId: { before:[], after:[] } }
+  const [modalImage, setModalImage] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -19,9 +21,21 @@ const AssignedStatus = () => {
       const { data } = await adminAPI.getAllComplaints({ limit: 200 });
       const list = data?.complaints || [];
       // We show only items that have been assigned (assumption: status transitions after assignment)
-      const assignedLikeStatuses = ['Assigned', 'In Progress', 'Completed'];
+      const assignedLikeStatuses = ['Assigned', 'In Progress', 'Resolved'];
       const filtered = list.filter(c => assignedLikeStatuses.includes(c.status));
       setItems(filtered);
+
+      // Fetch progress images for these complaints (best-effort)
+      const entries = await Promise.all(filtered.map(async (c) => {
+        try {
+          const res = await complaintsAPI.getProgressImages(c._id);
+          return [c._id, res.data?.images || { before: [], after: [] }];
+        } catch (_) {
+          return [c._id, { before: [], after: [] }];
+        }
+      }));
+      const map = Object.fromEntries(entries);
+      setProgressMap(map);
     } catch (e) {
       setError(apiHelpers.handleError(e).message);
     } finally {
@@ -87,6 +101,7 @@ const AssignedStatus = () => {
               <th>Location</th>
               <th>Assigned To</th>
               <th>Status</th>
+              <th>Before & After</th>
               <th>Updated</th>
             </tr>
           </thead>
@@ -97,22 +112,59 @@ const AssignedStatus = () => {
             {!loading && view.length === 0 && !error && (
               <tr><td colSpan="7" className="as-cell-center">No assigned complaints found.</td></tr>
             )}
-            {!loading && view.map((c) => (
-              <tr key={c._id}>
-                <td>{c._id}</td>
-                <td>{c.title}</td>
-                <td>{c.category || '-'}</td>
-                <td>{c.location || '-'}</td>
-                <td>{c.assignedTo?.name || c.labour?.name || c.assignedTo?.email || '-'}</td>
-                <td>
-                  <span className={`as-badge as-${String(c.status || '').toLowerCase().replace(/\s+/g,'-')}`}>{c.status}</span>
-                </td>
-                <td>{new Date(c.updatedAt || c.assignedAt || c.createdAt).toLocaleString()}</td>
-              </tr>
-            ))}
+            {!loading && view.map((c) => {
+              const imgs = progressMap[c._id] || { before: [], after: [] };
+              const beforeUrl = imgs.before?.[0]?.imageUrl || '';
+              const afterUrl = imgs.after?.[0]?.imageUrl || '';
+              const wip = imgs.before?.length > 0 && imgs.after?.length === 0;
+              const done = imgs.before?.length > 0 && imgs.after?.length > 0;
+              return (
+                <tr key={c._id}>
+                  <td>{c._id}</td>
+                  <td>{c.title}</td>
+                  <td>{c.category || '-'}</td>
+                  <td>{c.location || '-'}</td>
+                  <td>{c.assignedTo?.name || c.labour?.name || c.assignedTo?.email || '-'}</td>
+                  <td>
+                    <span className={`as-badge as-${String(c.status || '').toLowerCase().replace(/\s+/g,'-')}`}>{c.status}</span>
+                    {wip && <div className="as-progress as-wip">Before uploaded</div>}
+                    {done && <div className="as-progress as-done">Before & After uploaded</div>}
+                  </td>
+                  <td>
+                    <div className="as-bna">
+                      <div className="as-thumb" onClick={()=> beforeUrl && setModalImage(beforeUrl)}>
+                        {beforeUrl ? (
+                          <img src={beforeUrl} alt="before" />
+                        ) : (
+                          <div className="as-ph">Before</div>
+                        )}
+                      </div>
+                      <div className="as-sep">→</div>
+                      <div className="as-thumb" onClick={()=> afterUrl && setModalImage(afterUrl)}>
+                        {afterUrl ? (
+                          <img src={afterUrl} alt="after" />
+                        ) : (
+                          <div className="as-ph">After</div>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td>{new Date(c.updatedAt || c.assignedAt || c.createdAt).toLocaleString()}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
+
+      {modalImage && (
+        <div className="as-modal" onClick={()=>setModalImage('')}>
+          <div className="as-modal-card" onClick={(e)=>e.stopPropagation()}>
+            <button className="as-modal-close" onClick={()=>setModalImage('')}>✕</button>
+            <img src={modalImage} alt="full" style={{ maxWidth: '90vw', maxHeight: '80vh' }} />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

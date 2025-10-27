@@ -1,65 +1,32 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import ThemeSwitcher from '../ThemeSwitcher/ThemeSwitcher';
+import './PublicNavbar.css';
 
 const PublicNavbar = () => {
   const location = useLocation();
-  const linkStyle = { color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: 500 };
+  const isActive = (path) => location.pathname === path;
 
-  useEffect(() => {
-    if (window.google && window.google.translate) {
-      // Re-render dropdown on route change
-      new window.google.translate.TranslateElement(
-        {
-          pageLanguage: 'en',
-          includedLanguages: 'en,ta,hi,te,ml,kn,ur,gu',
-          layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE,
-        },
-        'google_translate_element'
-      );
-    } else if (!document.getElementById('google-translate-script')) {
-      window.googleTranslateElementInit = () => {
-        new window.google.translate.TranslateElement(
-          {
-            pageLanguage: 'en',
-            includedLanguages: 'en,ta,hi,te,ml,kn,ur,gu',
-            layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE,
-          },
-          'google_translate_element'
-        );
-      };
-
-      const script = document.createElement('script');
-      script.id = 'google-translate-script';
-      script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
-      document.body.appendChild(script);
-    }
-  }, [location.pathname]); // Re-run on route change
+  // Language selector removed per request
 
   return (
-    <nav style={{
-      background: 'var(--navbar-bg, var(--background-white))',
-      padding: '1rem 2rem',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      borderBottom: '1px solid var(--border-color)'
-    }}>
-      <Link to="/" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--primary-color)', textDecoration: 'none' }}>
-        FixItFast
-      </Link>
-
-      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-        <Link to="/" style={linkStyle}>Home</Link>
-        <Link to="/about" style={linkStyle}>About</Link>
-        <Link to="/contact" style={linkStyle}>Contact</Link>
-        <Link to="/faq" style={linkStyle}>FAQ</Link>
-        <Link to="/signin" style={linkStyle}>Sign In</Link>
-        <Link to="/register" style={linkStyle}>Register</Link>
-        <ThemeSwitcher />
-        {/* Google Translate Dropdown */}
-        <div id="google_translate_element"></div>
+    <nav className="app-nav public-nav">
+      <div className="nav-inner">
+        <Link to="/" className="brand" aria-label="Home">
+          <img src="/Images/LOGO.png" alt="Logo" className="brand-logo" onError={(e)=>{e.currentTarget.style.display='none'}} />
+        </Link>
+        <div className="nav-links">
+          <Link to="/" className={`nav-link ${isActive('/') ? 'active' : ''}`}>Home</Link>
+          <Link to="/register" className={`nav-link ${isActive('/register') ? 'active' : ''}`}>Register</Link>
+          <Link to="/signin" className={`nav-link ${isActive('/signin') ? 'active' : ''}`}>Sign In</Link>
+          <Link to="/labour" className={`nav-link ${isActive('/labour') ? 'active' : ''}`}>Labour</Link>
+          <Link to="/contact" className={`nav-link ${isActive('/contact') ? 'active' : ''}`}>Contact</Link>
+          <Link to="/faq" className={`nav-link ${isActive('/faq') ? 'active' : ''}`}>FAQ</Link>
+          <Link to="/about" className={`nav-link ${isActive('/about') ? 'active' : ''}`}>About</Link>
+        </div>
+        <div className="nav-actions">
+          <ThemeSwitcher />
+        </div>
       </div>
     </nav>
   );

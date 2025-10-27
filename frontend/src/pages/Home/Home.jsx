@@ -47,30 +47,6 @@ const Home = () => {
 
   return (
     <div className="home-page">
-      {/* Header - ONLY FixItFast logo here */}
-      <header className="header">
-        <div className="header-container">
-          <Link to="/" className="logo">
-            <span className="logo-icon">🔧</span>
-            <span className="logo-text">FixItFast</span>
-          </Link>
-
-          <nav className="nav-buttons">
-            <Link to="/signin" className="nav-btn signin-btn">
-              <span className="btn-icon">🔑</span>
-              Sign In
-            </Link>
-            <Link to="/register" className="nav-btn register-btn">
-              <span className="btn-icon">👤</span>
-              Register
-            </Link>
-            <Link to="/about" className="nav-btn about-btn">
-              <span className="btn-icon">ℹ️</span>
-              About
-            </Link>
-          </nav>
-        </div>
-      </header>
 
       {/* Hero Section - NO logo here, just content */}
       <section className="hero-section">
@@ -96,15 +72,21 @@ const Home = () => {
 
             <div className="hero-features">
               <div className="feature-item">
-                <span className="feature-icon">📝</span>
+                <span className="feature-icon" aria-hidden>
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3h18v4H3z"/><path d="M7 7v14"/><path d="M3 11h18"/></svg>
+                </span>
                 <span>Easy Reporting</span>
               </div>
               <div className="feature-item">
-                <span className="feature-icon">📊</span>
+                <span className="feature-icon" aria-hidden>
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-5"/></svg>
+                </span>
                 <span>Real-time Tracking</span>
               </div>
               <div className="feature-item">
-                <span className="feature-icon">👥</span>
+                <span className="feature-icon" aria-hidden>
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/></svg>
+                </span>
                 <span>Community Driven</span>
               </div>
             </div>

@@ -56,6 +56,7 @@ import LabourProfile from './pages/labour/LabourProfile/LabourProfile'
 import AssignedComplaints from './pages/labour/AssignedComplaints/AssignedComplaints'
 import SimpleAttendance from './pages/labour/SimpleAttendance/SimpleAttendance'
 // import LabourAttendance from './pages/labour/LabourAttendance/LabourAttendance'
+import ImageUpload from './pages/labour/ImageUpload/ImageUpload'
 import AdminProfile from './pages/admin/AdminProfile/AdminProfile'
 import ManageAttendance from './pages/admin/ManageAttendance/ManageAttendance'
 import FloatingAttendanceButton from './components/attendance/FloatingAttendanceButton'
@@ -69,8 +70,8 @@ const Layout = ({ children }) => {
   const location = useLocation()
   
   const pagesWithoutNavbar = ['/', '/signin', '/register']
-  const publicPages = ['/about', '/contact', '/faq']
-  const minimalHeaderPages = ['/admin/login', '/admin/change-password', '/labour/login']
+  const publicPages = ['/', '/about', '/contact', '/faq']
+  const minimalHeaderPages = ['/admin/login', '/admin/change-password', '/labour/login', '/labour']
   
   const isMinimalHeader = minimalHeaderPages.includes(location.pathname)
   const showPublicNavbar = !isMinimalHeader && publicPages.includes(location.pathname)
@@ -136,6 +137,7 @@ function App() {
                 {/* Auth Routes */}
                 <Route path="/register" element={<Register />} />
                 <Route path="/signin" element={<SignIn />} />
+                <Route path="/labour" element={<LabourLogin />} />
                 <Route path="/labour/login" element={<LabourLogin />} />
                 <Route path="/auth/callback" element={<OAuthCallback />} />
                 
@@ -149,6 +151,9 @@ function App() {
                 } />
                 <Route path="/labour/assigned-complaints" element={
                   <ProtectedRoute><AssignedComplaints /></ProtectedRoute>
+                } />
+                <Route path="/labour/complaints/:id/upload-images" element={
+                  <ProtectedRoute><ImageUpload /></ProtectedRoute>
                 } />
                 <Route path="/labour/attendance" element={
                   <ProtectedRoute><SimpleAttendance /></ProtectedRoute>

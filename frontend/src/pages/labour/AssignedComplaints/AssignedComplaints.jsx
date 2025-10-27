@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { labourAPI, apiHelpers } from '../../../services/api';
+import { labourAPI, apiHelpers, complaintsAPI } from '../../../services/api';
 import UserInfoCard from '../../../components/UserInfoCard/UserInfoCard';
 import AttachmentViewer from '../../../components/AttachmentViewer/AttachmentViewer';
 // import QuickAttendanceWidget from '../../../components/attendance/QuickAttendanceWidget';
@@ -21,6 +21,9 @@ const AssignedComplaints = () => {
   const [detail, setDetail] = useState(null);
   const [remarks, setRemarks] = useState('');
   const [updating, setUpdating] = useState(false);
+  const [progressImgs, setProgressImgs] = useState({ before: [], after: [] });
+  const [filesBefore, setFilesBefore] = useState([]);
+  const [filesAfter, setFilesAfter] = useState([]);
 
   const statuses = ['Assigned', 'In Progress', 'Completed'];
   const priorities = ['Low', 'Medium', 'High', 'Critical'];
@@ -63,6 +66,13 @@ const AssignedComplaints = () => {
       const data = await res.json();
       setDetail(data?.complaint || null);
       setRemarks('');
+      // Load progress images
+      try {
+        const pi = await complaintsAPI.getProgressImages(id);
+        setProgressImgs(pi.data?.images || { before: [], after: [] });
+      } catch (_) {
+        setProgressImgs({ before: [], after: [] });
+      }
     } catch (e) {
       alert(e.message);
     }
@@ -232,6 +242,9 @@ const AssignedComplaints = () => {
                   <td className="ac-actions">
                     <button onClick={()=>openDetail(c._id)}>View Details</button>
                     <button onClick={()=>{ setDetail(c); setRemarks(''); }}>Add Remarks</button>
+                    <Link to={`/labour/complaints/${c._id}/upload-images`} style={{ marginLeft: 8 }}>
+                      Upload Images
+                    </Link>
                     <div className="ac-menu">
                       {c.pendingStatusUpdate && c.pendingStatusUpdate.newStatus && !c.pendingStatusUpdate.isApproved ? (
                         <div className="pending-status-info">
@@ -412,6 +425,63 @@ const AssignedComplaints = () => {
                   <AttachmentViewer attachments={detail.attachments} compact={false} />
                 </div>
               )}
+
+              {/* Progress Images Section */}
+              <div className="ac-section">
+                <div className="section-header">
+                  <h4>🖼️ Progress Images</h4>
+                  <p className="section-subtitle">Upload Before and After photos. Only assigned labour can upload.</p>
+                </div>
+                <div className="ac-box">
+                  <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ fontWeight: 600, marginBottom: 6 }}>Before</div>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        {progressImgs.before?.map((img, idx) => (
+                          <img key={idx} src={img.imageUrl} alt="before" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 6, border: '1px solid #e5e7eb' }} />
+                        ))}
+                        {(!progressImgs.before || progressImgs.before.length === 0) && (
+                          <div style={{ width: 64, height: 64, border: '1px dashed #d1d5db', borderRadius: 6, display: 'grid', placeItems: 'center', color: '#9ca3af', fontSize: 12 }}>No images</div>
+                        )}
+                      </div>
+                      <input type="file" multiple accept="image/*" onChange={(e)=>setFilesBefore(Array.from(e.target.files||[]))} />
+                      <button style={{ marginTop: 6 }} disabled={!filesBefore.length} onClick={async ()=>{
+                        try {
+                          await labourAPI.uploadProgressImages(detail._id, 'before', filesBefore);
+                          const pi = await complaintsAPI.getProgressImages(detail._id);
+                          setProgressImgs(pi.data?.images || { before: [], after: [] });
+                          setFilesBefore([]);
+                        } catch (e) {
+                          alert(apiHelpers.handleError(e).message);
+                        }
+                      }}>Upload Before</button>
+                    </div>
+
+                    <div>
+                      <div style={{ fontWeight: 600, marginBottom: 6 }}>After</div>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        {progressImgs.after?.map((img, idx) => (
+                          <img key={idx} src={img.imageUrl} alt="after" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 6, border: '1px solid #e5e7eb' }} />
+                        ))}
+                        {(!progressImgs.after || progressImgs.after.length === 0) && (
+                          <div style={{ width: 64, height: 64, border: '1px dashed #d1d5db', borderRadius: 6, display: 'grid', placeItems: 'center', color: '#9ca3af', fontSize: 12 }}>No images</div>
+                        )}
+                      </div>
+                      <input type="file" multiple accept="image/*" onChange={(e)=>setFilesAfter(Array.from(e.target.files||[]))} />
+                      <button style={{ marginTop: 6 }} disabled={!filesAfter.length} onClick={async ()=>{
+                        try {
+                          await labourAPI.uploadProgressImages(detail._id, 'after', filesAfter);
+                          const pi = await complaintsAPI.getProgressImages(detail._id);
+                          setProgressImgs(pi.data?.images || { before: [], after: [] });
+                          setFilesAfter([]);
+                        } catch (e) {
+                          alert(apiHelpers.handleError(e).message);
+                        }
+                      }}>Upload After</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               <div className="ac-section">
                 <div><b>Status History</b></div>

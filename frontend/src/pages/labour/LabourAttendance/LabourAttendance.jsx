@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { labourAPI, apiHelpers } from '../../../services/api';
 import MonthlyAttendanceChart from '../../../components/attendance/MonthlyAttendanceChart';
-import { canMarkAttendance, isWithinOfficeHours, getTimeUntilOfficeHours } from '../../../utils/timeUtils';
+import { canMarkAttendance, isWithinOfficeHours, getTimeUntilOfficeHours, isAfterOfficeHours, isBreakButtonEnabled, getLeaveRestrictions, shouldAutoCheckout, getAttendanceWindowStatus } from '../../../utils/timeUtils';
 
 const LabourAttendance = () => {
   const [attendanceStatus, setAttendanceStatus] = useState(null);
@@ -25,6 +25,7 @@ const LabourAttendance = () => {
   const [isOnLeave, setIsOnLeave] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [attendanceTimeCheck, setAttendanceTimeCheck] = useState({ canMark: true, message: '' });
+  const [windowStatus, setWindowStatus] = useState({ isWindowActive: true });
 
   const cardStyle = {
     border: '1px solid #e5e7eb',
@@ -81,6 +82,11 @@ const LabourAttendance = () => {
       setAttendanceHistory(historyRes.data?.attendance || []);
       setAttendanceStats(statsRes.data?.stats || {});
       setIsOnLeave(leaveRes.data?.isOnLeave || false);
+      
+      // Check window status
+      const now = new Date();
+      const windowSts = getAttendanceWindowStatus(now);
+      setWindowStatus(windowSts);
     } catch (err) {
       const info = apiHelpers.handleError(err);
       setError(info.message);
@@ -262,9 +268,20 @@ const LabourAttendance = () => {
   // Check time restrictions on component mount and every minute
   useEffect(() => {
     checkAttendanceTime();
+    
+    // Check window status every minute
+    const windowCheckTimer = setInterval(() => {
+      const now = new Date();
+      const windowSts = getAttendanceWindowStatus(now);
+      setWindowStatus(windowSts);
+    }, 60000); // Check every minute
+    
     const timer = setInterval(checkAttendanceTime, 60000); // Check every minute
     
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      clearInterval(windowCheckTimer);
+    };
   }, [checkAttendanceTime]);
 
   if (loading) {
@@ -382,13 +399,14 @@ const LabourAttendance = () => {
           <button 
             style={{
               ...primaryButtonStyle, 
-              background: (!attendanceTimeCheck.canMark || isOnLeave || (attendanceStatus && attendanceStatus.status && attendanceStatus.status !== 'check_out' && attendanceStatus.status !== null)) ? '#9ca3af' : '#f97316',
-              opacity: (!attendanceTimeCheck.canMark || isOnLeave || (attendanceStatus && attendanceStatus.status && attendanceStatus.status !== 'check_out' && attendanceStatus.status !== null)) ? 0.6 : 1,
-              cursor: (!attendanceTimeCheck.canMark || isOnLeave || (attendanceStatus && attendanceStatus.status && attendanceStatus.status !== 'check_out' && attendanceStatus.status !== null)) ? 'not-allowed' : 'pointer'
+              background: (!attendanceTimeCheck.canMark || isOnLeave || (attendanceStatus && attendanceStatus.status && attendanceStatus.status !== 'check_out' && attendanceStatus.status !== null) || !windowStatus.isWindowActive) ? '#9ca3af' : '#f97316',
+              opacity: (!attendanceTimeCheck.canMark || isOnLeave || (attendanceStatus && attendanceStatus.status && attendanceStatus.status !== 'check_out' && attendanceStatus.status !== null) || !windowStatus.isWindowActive) ? 0.6 : 1,
+              cursor: (!attendanceTimeCheck.canMark || isOnLeave || (attendanceStatus && attendanceStatus.status && attendanceStatus.status !== 'check_out' && attendanceStatus.status !== null) || !windowStatus.isWindowActive) ? 'not-allowed' : 'pointer'
             }}
             onClick={() => openMarkForm('leave')}
-            disabled={marking || !attendanceTimeCheck.canMark || isOnLeave || (attendanceStatus && attendanceStatus.status && attendanceStatus.status !== 'check_out' && attendanceStatus.status !== null)}
+            disabled={marking || !attendanceTimeCheck.canMark || isOnLeave || (attendanceStatus && attendanceStatus.status && attendanceStatus.status !== 'check_out' && attendanceStatus.status !== null) || !windowStatus.isWindowActive}
             title={
+              !windowStatus.isWindowActive ? 'Attendance window is closed' :
               isOnLeave ? 'Already on leave today' :
               (attendanceStatus && attendanceStatus.status && attendanceStatus.status !== 'check_out' && attendanceStatus.status !== null) ? 'Cannot mark leave after other attendance actions' : 
               'Mark as on leave for the day'
@@ -396,10 +414,11 @@ const LabourAttendance = () => {
           >
             🏠 {isOnLeave ? 'Already on Leave' :
                    (attendanceStatus && attendanceStatus.status && attendanceStatus.status !== 'check_out' && attendanceStatus.status !== null) ? 'Leave (Unavailable)' : 
+                   !windowStatus.isWindowActive ? 'Window Closed' :
                    'Mark Leave'}
           </button>
           
-          {!isOnLeave && attendanceTimeCheck.canMark && (!attendanceStatus || attendanceStatus.status === 'check_out') && (
+          {!isOnLeave && attendanceTimeCheck.canMark && windowStatus.isWindowActive && (!attendanceStatus || attendanceStatus.status === 'check_out') && (
             <button 
               style={primaryButtonStyle}
               onClick={() => openMarkForm('check_in')}
@@ -409,19 +428,18 @@ const LabourAttendance = () => {
             </button>
           )}
           
-          {/* Break toggle button - available when checked in or on duty and not on leave */}
-          {!isOnLeave && attendanceTimeCheck.canMark && attendanceStatus && (attendanceStatus.status === 'check_in' || attendanceStatus.status === 'on_duty' || attendanceStatus.status === 'break') && (
+          {/* Break toggle button - available when status is exactly 'check_in' and not on leave */}
+          {!isOnLeave && isBreakButtonEnabled(attendanceStatus?.status) && windowStatus.isWindowActive && (
             <button 
               style={{
                 ...buttonStyle, 
-                background: attendanceStatus.status === 'break' ? '#10b981' : '#f59e0b', 
-                color: 'white',
-                opacity: !attendanceTimeCheck.canMark ? 0.6 : 1
+                background: marking ? '#9ca3af' : '#f59e0b', 
+                color: 'white'
               }}
               onClick={handleBreakToggle}
-              disabled={marking || !attendanceTimeCheck.canMark}
+              disabled={marking}
             >
-              {attendanceStatus.status === 'break' ? 'End Break' : 'Start Break'}
+              {marking ? '⏳ Processing...' : '⏸️ Start Break'}
             </button>
           )}
           
@@ -436,17 +454,16 @@ const LabourAttendance = () => {
             </button>
           )}
 
-          {/* Overtime button - available when not on leave */}
-          {!isOnLeave && attendanceTimeCheck.canMark && (
+          {/* Overtime button - available when not on leave and window is active */}
+          {!isOnLeave && attendanceTimeCheck.canMark && windowStatus.isWindowActive && (
             <button 
               style={{
                 ...buttonStyle, 
                 background: '#8b5cf6', 
-                color: 'white',
-                opacity: !attendanceTimeCheck.canMark ? 0.6 : 1
+                color: 'white'
               }}
               onClick={() => openMarkForm('overtime')}
-              disabled={marking || !attendanceTimeCheck.canMark}
+              disabled={marking}
             >
               Mark Overtime
             </button>

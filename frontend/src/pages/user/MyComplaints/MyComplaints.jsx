@@ -278,44 +278,52 @@ export default function MyComplaints() {
           <div className="modal-overlay" onClick={() => setDetailOpen(false)}>
             <div className="detail-sidebar" onClick={(e) => e.stopPropagation()}>
               <div className="detail-header">
-                <h3>Complaint Details</h3>
-                <button className="btn-close" onClick={() => setDetailOpen(false)}>✕ Close</button>
+                <div className="detail-header-content">
+                  <h2 className="detail-main-title">📋 Complaint Details</h2>
+                  <p className="detail-subtitle">Track and manage your complaint</p>
+                </div>
+                <button className="btn-close-icon" onClick={() => setDetailOpen(false)} title="Close details">✕</button>
               </div>
+              <div className="detail-divider"></div>
 
               {!editMode ? (
                 <>
-                  <div className="detail-section">
-                    <div className="detail-label">Complaint ID</div>
-                    <div className="detail-value">{selected._id}</div>
+                  <div className="detail-grid-2-col">
+                    <div className="detail-section">
+                      <div className="detail-label">Complaint ID</div>
+                      <div className="detail-value detail-mono">{selected._id}</div>
+                    </div>
+
+                    <div className="detail-section">
+                      <div className="detail-label">Status</div>
+                      <div className="detail-value">
+                        <span className={`status-badge ${String(selected.status||'').toLowerCase()==='resolved'?'status-resolved':String(selected.status||'').toLowerCase()==='inprogress'?'status-in-progress':'status-pending'}`}>
+                          {selected.status || '—'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="detail-section">
                     <div className="detail-label">Title</div>
-                    <div className="detail-value">{selected.title || selected.shortDescription || '—'}</div>
+                    <div className="detail-value detail-title">{selected.title || selected.shortDescription || '—'}</div>
                   </div>
 
-                  <div className="detail-section">
-                    <div className="detail-label">Category</div>
-                    <div className="detail-value">{selected.category || '—'}</div>
-                  </div>
+                  <div className="detail-grid-2-col">
+                    <div className="detail-section">
+                      <div className="detail-label">Category</div>
+                      <div className="detail-value">{selected.category || '—'}</div>
+                    </div>
 
-                  <div className="detail-section">
-                    <div className="detail-label">Date Submitted</div>
-                    <div className="detail-value">{formatDate(selected.createdAt)}</div>
-                  </div>
-
-                  <div className="detail-section">
-                    <div className="detail-label">Status</div>
-                    <div className="detail-value">
-                      <span className={`status-badge ${String(selected.status||'').toLowerCase()==='resolved'?'status-resolved':String(selected.status||'').toLowerCase()==='inprogress'?'status-in-progress':'status-pending'}`}>
-                        {selected.status || '—'}
-                      </span>
+                    <div className="detail-section">
+                      <div className="detail-label">Date Submitted</div>
+                      <div className="detail-value">{formatDate(selected.createdAt)}</div>
                     </div>
                   </div>
 
                   <div className="detail-section">
                     <div className="detail-label">Description</div>
-                    <div className="detail-value" style={{ whiteSpace: 'pre-wrap' }}>{selected.description || '—'}</div>
+                    <div className="detail-value detail-description" style={{ whiteSpace: 'pre-wrap' }}>{selected.description || '—'}</div>
                   </div>
 
                   {/* Supporting Files Section */}

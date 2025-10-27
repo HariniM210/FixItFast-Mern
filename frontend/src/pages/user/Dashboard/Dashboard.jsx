@@ -90,7 +90,7 @@ const Dashboard = () => {
         {/* Hero Section */}
         <div className="dashboard-hero">
           <h1 className="hero-title">
-            Welcome, <span className="dashboard-username">{user?.name || 'User'}</span>! ✨
+            Welcome, <span className="dashboard-username">{user?.name || 'User'}</span>! <span className="sparkle-once" aria-hidden="true">✨</span>
           </h1>
           <p className="dashboard-subhead">
             Quick stats about your civic engagement at a glance

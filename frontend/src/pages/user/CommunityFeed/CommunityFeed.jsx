@@ -194,12 +194,16 @@ const CommunityFeed = () => {
     );
   }
 
+  const resolvedComplaints = Array.isArray(complaints)
+    ? complaints.filter(c => c.status === COMPLAINT_STATUSES.RESOLVED)
+    : [];
+
   return (
     <div className="communityfeed-page theme-page-bg">
       <div className="feed-header">
         <div className="header-decoration"></div>
-        <h1>Your Complaints & Feedback</h1>
-        <p>View your lodged complaints and provide feedback on resolved issues</p>
+        <h1>Feedback</h1>
+        <p>View resolved complaints and provide your feedback</p>
         {successMessage && (
           <div className="success-banner" style={{ background:'#ecfdf5', color:'#065f46', border:'1px solid #10b981', padding:'10px 12px', borderRadius:8, marginTop:12 }}>
             {successMessage}
@@ -207,11 +211,7 @@ const CommunityFeed = () => {
         )}
         <div className="header-stats">
           <div className="stat-item">
-            <span className="stat-number">{complaints.length}</span>
-            <span className="stat-label">Total Complaints</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-number">{complaints.filter(c => c.status === COMPLAINT_STATUSES.RESOLVED).length}</span>
+            <span className="stat-number">{resolvedComplaints.length}</span>
             <span className="stat-label">Resolved</span>
           </div>
           <div className="stat-item">
@@ -222,14 +222,14 @@ const CommunityFeed = () => {
       </div>
 
       <div className="feed-list">
-        {complaints.length === 0 ? (
+        {resolvedComplaints.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">📝</div>
-            <h3>No Complaints Yet</h3>
-            <p>You haven't lodged any complaints yet. When you do, you'll be able to track their progress and provide feedback once they're resolved.</p>
+            <h3>No Resolved Complaints Yet</h3>
+            <p>Once your complaints are resolved, they will appear here and you can share your feedback.</p>
           </div>
         ) : (
-          complaints.map((complaint, index) => {
+          resolvedComplaints.map((complaint, index) => {
             const feedback = existingFeedback[complaint._id];
             
             return (
@@ -303,15 +303,10 @@ const CommunityFeed = () => {
                         Provide Feedback
                       </button>
                     </div>
-                  ) : complaint.status === 'Resolved' ? (
+                  ) : (
                     <div className="feedback-disabled">
                       <span className="feedback-icon">📝</span>
                       <span className="feedback-text">Feedback can be provided once per resolved complaint</span>
-                    </div>
-                  ) : (
-                    <div className="feedback-disabled">
-                      <span className="feedback-icon">⏳</span>
-                      <span className="feedback-text">Feedback available once complaint is resolved</span>
                     </div>
                   )}
                 </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { labourAPI, apiHelpers } from '../../../services/api';
+import { isAfterOfficeHours, isBreakButtonEnabled, getLeaveRestrictions, shouldAutoCheckout, getAttendanceWindowStatus } from '../../../utils/timeUtils';
 
 const SimpleAttendance = () => {
   const [marking, setMarking] = useState(false);
@@ -13,6 +14,8 @@ const SimpleAttendance = () => {
   const [currentStatus, setCurrentStatus] = useState(null);
   const [isHalfDay, setIsHalfDay] = useState(false);
   const [isOnLeave, setIsOnLeave] = useState(false);
+  const [windowStatus, setWindowStatus] = useState({ isWindowActive: true });
+  const [shouldShowAutoCheckoutPrompt, setShouldShowAutoCheckoutPrompt] = useState(false);
 
   const cardStyle = {
     border: '1px solid #e5e7eb',
@@ -80,6 +83,16 @@ const SimpleAttendance = () => {
       setRecentHistory(recentRecords);
       setHasCheckedInToday(hasCheckedIn);
       setIsOnLeave(onLeaveToday);
+      
+      // Check window status and auto-checkout requirement
+      const now = new Date();
+      const windowSts = getAttendanceWindowStatus(now);
+      setWindowStatus(windowSts);
+      
+      // Check if auto-checkout is needed
+      const autoCheckoutCheck = shouldAutoCheckout(status?.status, now);
+      setShouldShowAutoCheckoutPrompt(autoCheckoutCheck.shouldCheckout && !hasCheckedIn);
+      
       
     } catch (err) {
       const info = apiHelpers.handleError(err);
@@ -225,7 +238,20 @@ const SimpleAttendance = () => {
 
   useEffect(() => {
     loadAttendanceData();
-  }, []);
+    
+    // Check window status every minute
+    const windowCheckTimer = setInterval(() => {
+      const now = new Date();
+      const windowSts = getAttendanceWindowStatus(now);
+      setWindowStatus(windowSts);
+      
+      // Check if auto-checkout is needed
+      const autoCheckoutCheck = shouldAutoCheckout(currentStatus, now);
+      setShouldShowAutoCheckoutPrompt(autoCheckoutCheck.shouldCheckout);
+    }, 60000); // Check every minute
+    
+    return () => clearInterval(windowCheckTimer);
+  }, [currentStatus]);
 
   if (loading) {
     return (
@@ -372,6 +398,55 @@ const SimpleAttendance = () => {
         </div>
       )}
 
+      {/* Auto-Checkout Alert */}
+      {shouldShowAutoCheckoutPrompt && (
+        <div style={{ 
+          background: '#fef3c7', 
+          padding: '16px', 
+          borderRadius: '8px', 
+          border: '1px solid #fcd34d',
+          marginBottom: '20px',
+          textAlign: 'center'
+        }}>
+          <div style={{ color: '#d97706', fontWeight: '600', marginBottom: '8px' }}>
+            ⏰ Automatic Checkout Alert
+          </div>
+          <div style={{ color: '#b45309', fontSize: '14px', marginBottom: '12px' }}>
+            Office hours have ended at 5:00 PM. Your attendance should be automatically checked out.
+          </div>
+          <button
+            onClick={() => handleAttendance('check_out')}
+            style={{
+              ...buttonStyle,
+              background: '#f59e0b',
+              color: 'white'
+            }}
+            disabled={marking}
+          >
+            {marking ? '⏳ Processing...' : 'Check Out Now'}
+          </button>
+        </div>
+      )}
+
+      {/* Attendance Window Status */}
+      {!windowStatus.isWindowActive && (
+        <div style={{
+          background: windowStatus.isAfterHours ? '#fef2f2' : '#f0f9ff',
+          padding: '12px',
+          borderRadius: '6px',
+          border: windowStatus.isAfterHours ? '1px solid #fecaca' : '1px solid #bfdbfe',
+          marginBottom: '20px',
+          textAlign: 'center'
+        }}>
+          <div style={{ 
+            color: windowStatus.isAfterHours ? '#dc2626' : '#1e40af',
+            fontSize: '14px'
+          }}>
+            {windowStatus.windowMessage}
+          </div>
+        </div>
+      )}
+
       {/* Main Attendance Card */}
       <div style={cardStyle}>
         <h3 style={{ margin: '0 0 20px 0', textAlign: 'center' }}>
@@ -397,35 +472,34 @@ const SimpleAttendance = () => {
           {/* Check In Button */}
           <button 
             onClick={() => handleAttendance('check_in')}
-            disabled={marking || hasCheckedInToday || isOnLeave}
+            disabled={marking || hasCheckedInToday || isOnLeave || !windowStatus.isWindowActive}
             style={{
               ...buttonStyle,
-              background: (marking || hasCheckedInToday || isOnLeave) ? '#9ca3af' : '#10b981',
+              background: (marking || hasCheckedInToday || isOnLeave || !windowStatus.isWindowActive) ? '#9ca3af' : '#10b981',
               color: 'white',
               minWidth: '180px',
-              cursor: (marking || hasCheckedInToday || isOnLeave) ? 'not-allowed' : 'pointer',
-              opacity: (hasCheckedInToday || isOnLeave) ? 0.6 : 1
+              cursor: (marking || hasCheckedInToday || isOnLeave || !windowStatus.isWindowActive) ? 'not-allowed' : 'pointer',
+              opacity: (hasCheckedInToday || isOnLeave || !windowStatus.isWindowActive) ? 0.6 : 1
             }}
-            title={isOnLeave ? 'Cannot check in while on leave' : hasCheckedInToday ? 'Already checked in today' : 'Mark your arrival at work'}
+            title={!windowStatus.isWindowActive ? 'Attendance window is closed (office hours: 9 AM - 5 PM)' : isOnLeave ? 'Cannot check in while on leave' : hasCheckedInToday ? 'Already checked in today' : 'Mark your arrival at work'}
           >
-            {marking ? '⏳ Processing...' : hasCheckedInToday ? '✅ Already Checked In' : '✅ Check In'}
+            {marking ? '⏳ Processing...' : hasCheckedInToday ? '✅ Already Checked In' : !windowStatus.isWindowActive ? '❌ Window Closed' : '✅ Check In'}
           </button>
           
-          {/* Break Toggle Button - Only show if checked in and not on leave */}
-          {!isOnLeave && (currentStatus === 'check_in' || currentStatus === 'on_duty' || currentStatus === 'break') && (
+          {/* Break Toggle Button - Only show if status is exactly 'check_in' and not on leave */}
+          {!isOnLeave && isBreakButtonEnabled(currentStatus) && (
             <button 
               onClick={handleBreakToggle}
-              disabled={marking}
+              disabled={marking || !windowStatus.isWindowActive}
               style={{
                 ...buttonStyle,
-                background: marking ? '#9ca3af' : (currentStatus === 'break' ? '#10b981' : '#f59e0b'),
+                background: marking || !windowStatus.isWindowActive ? '#9ca3af' : '#f59e0b',
                 color: 'white',
                 minWidth: '180px'
               }}
-              title={currentStatus === 'break' ? 'Click to end break and return to work' : 'Click to start your break'}
+              title={!windowStatus.isWindowActive ? 'Attendance window is closed' : 'Click to start your break'}
             >
-              {marking ? '⏳ Processing...' : 
-               currentStatus === 'break' ? '▶️ End Break' : '⏸️ Start Break'}
+              {marking ? '⏳ Processing...' : !windowStatus.isWindowActive ? '❌ Window Closed' : '⏸️ Start Break'}
             </button>
           )}
           
@@ -449,16 +523,17 @@ const SimpleAttendance = () => {
           {/* Leave Button - Available when not on leave and (no attendance OR last action was check_out) */}
           <button 
             onClick={handleLeave}
-            disabled={marking || isOnLeave || (todayAttendance.length > 0 && currentStatus !== 'check_out' && currentStatus !== null)}
+            disabled={marking || isOnLeave || (todayAttendance.length > 0 && currentStatus !== 'check_out' && currentStatus !== null) || !windowStatus.isWindowActive}
             style={{
               ...buttonStyle,
-              background: (marking || isOnLeave || (todayAttendance.length > 0 && currentStatus !== 'check_out' && currentStatus !== null)) ? '#9ca3af' : '#f97316',
+              background: (marking || isOnLeave || (todayAttendance.length > 0 && currentStatus !== 'check_out' && currentStatus !== null) || !windowStatus.isWindowActive) ? '#9ca3af' : '#f97316',
               color: 'white',
               minWidth: '180px',
-              opacity: (isOnLeave || (todayAttendance.length > 0 && currentStatus !== 'check_out' && currentStatus !== null)) ? 0.6 : 1,
-              cursor: (marking || isOnLeave || (todayAttendance.length > 0 && currentStatus !== 'check_out' && currentStatus !== null)) ? 'not-allowed' : 'pointer'
+              opacity: (isOnLeave || (todayAttendance.length > 0 && currentStatus !== 'check_out' && currentStatus !== null) || !windowStatus.isWindowActive) ? 0.6 : 1,
+              cursor: (marking || isOnLeave || (todayAttendance.length > 0 && currentStatus !== 'check_out' && currentStatus !== null) || !windowStatus.isWindowActive) ? 'not-allowed' : 'pointer'
             }}
             title={
+              !windowStatus.isWindowActive ? 'Attendance window is closed' :
               isOnLeave ? 'Already on leave today' :
               (todayAttendance.length > 0 && currentStatus !== 'check_out' && currentStatus !== null) ? 'Can only mark leave at start of day or after checking out' : 
               'Mark as on leave for the day'
@@ -466,23 +541,24 @@ const SimpleAttendance = () => {
           >
             {marking ? '⏳ Processing...' : 
              isOnLeave ? '🏠 Already on Leave' :
-             (todayAttendance.length > 0 && currentStatus !== 'check_out' && currentStatus !== null) ? '🏠 Leave (Unavailable)' : '🏠 Mark Leave'}
+             (todayAttendance.length > 0 && currentStatus !== 'check_out' && currentStatus !== null) ? '🏠 Leave (Unavailable)' : 
+             !windowStatus.isWindowActive ? '❌ Window Closed' : '🏠 Mark Leave'}
           </button>
           
-          {/* Overtime Button - Show only when not on leave */}
+          {/* Overtime Button - Show only when not on leave and window is active */}
           {!isOnLeave && (
             <button 
               onClick={() => handleAttendance('overtime')}
-              disabled={marking}
+              disabled={marking || !windowStatus.isWindowActive}
               style={{
                 ...buttonStyle,
-                background: marking ? '#9ca3af' : '#8b5cf6',
+                background: marking || !windowStatus.isWindowActive ? '#9ca3af' : '#8b5cf6',
                 color: 'white',
                 minWidth: '180px'
               }}
-              title="Mark when working beyond regular hours"
+              title={!windowStatus.isWindowActive ? 'Attendance window is closed' : 'Mark when working beyond regular hours'}
             >
-              {marking ? '⏳ Processing...' : '⚡ Mark Overtime'}
+              {marking ? '⏳ Processing...' : !windowStatus.isWindowActive ? '❌ Window Closed' : '⚡ Mark Overtime'}
             </button>
           )}
         </div>

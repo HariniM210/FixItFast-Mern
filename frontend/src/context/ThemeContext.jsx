@@ -7,6 +7,7 @@ export const THEMES = {
   FOREST: 'forest', // Green + Gray
   SUNRISE: 'sunrise', // Orange + Blue
   OCEAN: 'ocean', // Blue + White
+  BLOSSOM: 'blossom', // Pink + Violet
 };
 
 const THEME_LABELS = {
@@ -15,6 +16,7 @@ const THEME_LABELS = {
   [THEMES.FOREST]: 'Forest',
   [THEMES.SUNRISE]: 'Sunrise',
   [THEMES.OCEAN]: 'Ocean',
+  [THEMES.BLOSSOM]: 'Blossom',
 };
 
 const STORAGE_KEY = 'fixitfast.theme';

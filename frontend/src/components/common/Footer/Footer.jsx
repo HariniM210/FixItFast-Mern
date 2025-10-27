@@ -1,15 +1,19 @@
 import React from 'react';
+import './Footer.css';
 
 const Footer = () => {
   return (
-    <footer style={{
-      background: '#2d3748',
-      color: 'white',
-      textAlign: 'center',
-      padding: '2rem',
-      marginTop: 'auto'
-    }}>
-      <p>&copy; 2025 FixItFast. Making communities better, one complaint at a time.</p>
+    <footer className="app-footer">
+      <div className="footer-inner">
+        <div className="footer-brand">
+          <div className="brand-mark">F</div>
+          <div>
+            <div className="brand-name">FixItFast</div>
+            <div className="brand-tag">Making communities better, one complaint at a time.</div>
+          </div>
+        </div>
+        <div className="footer-meta">© {new Date().getFullYear()} FixItFast</div>
+      </div>
     </footer>
   );
 };

@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 
 const Complaint = require('../models/Complaint');
+const ComplaintProgressImage = require('../models/ComplaintProgressImage');
 const {
   authenticateToken,
   requireAdmin,
@@ -80,6 +81,46 @@ router.get('/', authenticateToken, (req, res) => {
     return getAllComplaints(req, res);
   } else {
     return getUserComplaints(req, res);
+  }
+});
+
+/**
+ * GET /api/complaints/:id/progress-images
+ * Private - Returns progress images grouped by type for the complaint
+ */
+router.get('/:id/progress-images', authenticateToken, async (req, res) => {
+  try {
+    const complaintId = req.params.id;
+
+    const complaint = await Complaint.findById(complaintId).select('user assignedTo');
+    if (!complaint) {
+      return res.status(404).json({ success: false, message: 'Complaint not found' });
+    }
+
+    const role = req.user.role;
+    const actorType = req.user.actorType;
+    const userId = req.user.id;
+
+    // Authorization: Admins can view all, labour can view if assigned, users can view their own
+    const isAdmin = role === 'admin' || role === 'superadmin';
+    const isAssignedLabour = actorType === 'labour' && String(complaint.assignedTo) === String(userId);
+    const isOwnerUser = actorType === 'user' && String(complaint.user) === String(userId);
+
+    if (!isAdmin && !isAssignedLabour && !isOwnerUser) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    const imgs = await ComplaintProgressImage.find({ complaint: complaintId })
+      .sort({ uploadedAt: 1 })
+      .lean();
+
+    const before = imgs.filter(i => i.imageType === 'before');
+    const after = imgs.filter(i => i.imageType === 'after');
+
+    return res.json({ success: true, images: { before, after }, count: imgs.length });
+  } catch (err) {
+    console.error('Get progress images error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch progress images' });
   }
 });
 

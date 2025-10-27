@@ -106,6 +106,16 @@ export const labourAPI = {
   updateProfile: (data) => API.post('/labour/profile/update', data),
   changePassword: ({ oldPassword, newPassword }) => API.post('/labour/change-password', { oldPassword, newPassword }),
   getStats: () => API.get('/labour/complaints/stats'),
+
+  // Progress images
+  uploadProgressImages: (id, imageType, files) => {
+    const form = new FormData();
+    form.append('image_type', imageType);
+    (files || []).forEach(f => form.append('images', f));
+    return API.post(`/labour/complaints/${id}/progress-images`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
   
   // Attendance API calls
   markAttendance: (type, location = '', remarks = '') => API.post('/labour/attendance', { type, location, remarks }),
@@ -182,7 +192,7 @@ export const complaintsAPI = {
   delete: (id) => API.delete(`/complaints/${id}`),
   like: (id) => API.post(`/complaints/${id}/like`),
   getUserComplaints: (filters) => API.get('/complaints', { params: filters }),
-
+  getProgressImages: (id) => API.get(`/complaints/${id}/progress-images`),
 };
 
 // Reports API calls (Admin & SuperAdmin only)

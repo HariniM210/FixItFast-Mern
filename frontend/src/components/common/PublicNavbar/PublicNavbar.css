@@ -1,0 +1,30 @@
+/* Reuse Navbar styles, plus any public-specific tweaks */
+.public-nav .nav-links .nav-link:nth-child(1) {
+  /* Slightly emphasize Home on public pages */
+}
+
+/* Ensure logo is clearly visible on public navbar too */
+.public-nav .brand-logo {
+  width: 60px;
+  height: 60px;
+  padding: 4px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  object-fit: contain;
+  display: block;
+}
+
+/* Center the nav links within the middle grid column */
+.public-nav .nav-links {
+  justify-content: center;
+}
+
+@media (max-width: 900px) {
+  .public-nav .brand-logo {
+    width: 44px;
+    height: 44px;
+    padding: 3px;
+  }
+}

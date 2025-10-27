@@ -93,7 +93,7 @@ const LodgeComplaint = () => {
           
           // Clear any previous errors and show success
           setMapsError('');
-          setLocationSuccess('✅ Your current location has been detected and set automatically!');
+          setLocationSuccess('✓ Your current location has been detected and set automatically!');
           
           // Auto-hide success message after 4 seconds
           setTimeout(() => {
@@ -211,7 +211,7 @@ const LodgeComplaint = () => {
               <div style="
                 width: 100%;
                 height: 100%;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
                 display: flex;
                 flex-direction: column;
                 align-items: center;
@@ -220,7 +220,7 @@ const LodgeComplaint = () => {
                 border-radius: 8px;
                 font-family: inherit;
               ">
-                <div style="font-size: 3rem; margin-bottom: 1rem;">🗺️</div>
+                <div style="font-size: 3rem; margin-bottom: 1rem;">🗺</div>
                 <h3 style="margin: 0 0 1rem 0; font-size: 1.5rem;">Google Maps Demo Mode</h3>
                 <p style="margin: 0; text-align: center; opacity: 0.9; max-width: 300px;">Add your Google Maps API key to enable full map functionality</p>
                 <div style="margin-top: 2rem; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center; cursor: pointer;" onclick="
@@ -437,11 +437,11 @@ const LodgeComplaint = () => {
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.title.trim()) newErrors.title = 'Title is required ✨';
-    if (!formData.category) newErrors.category = 'Please select a category 💫';
-    if (!formData.priority) newErrors.priority = 'Priority level is needed 🌟';
-    if (!formData.location.trim()) newErrors.location = 'Location details required 📍';
-    if (!formData.description.trim()) newErrors.description = 'Description is required 📝';
+    if (!formData.title.trim()) newErrors.title = 'Title is required';
+    if (!formData.category) newErrors.category = 'Please select a category';
+    if (!formData.priority) newErrors.priority = 'Priority level is needed';
+    if (!formData.location.trim()) newErrors.location = 'Location details required';
+    if (!formData.description.trim()) newErrors.description = 'Description is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -492,13 +492,13 @@ const LodgeComplaint = () => {
         for (let i = 0; i < formData.files.length; i++) {
           formDataToSend.append('supportingFiles', formData.files[i]);
         }
-        console.log('📄 Added files to FormData:', formData.files.length);
+        console.log('Added files to FormData:', formData.files.length);
       } else {
-        console.log('📄 No files to upload');
+        console.log('No files to upload');
       }
 
       // Debug: Log FormData contents
-      console.log('📤 FormData contents:');
+      console.log('FormData contents:');
       for (let pair of formDataToSend.entries()) {
         console.log(pair[0] + ':', pair[1]);
       }
@@ -598,29 +598,20 @@ const LodgeComplaint = () => {
         </div>
       </div>
 
-      {/* Floating Background Elements */}
-      <div className="floating-shapes">
-        <div className="shape shape-1"></div>
-        <div className="shape shape-2"></div>
-        <div className="shape shape-3"></div>
-        <div className="shape shape-4"></div>
-      </div>
+      {/* Floating Background Elements - removed for a cleaner, more professional look */}
 
       {/* Header Section */}
       <div className="page-header">
-        <div className="header-decoration">
-          <span className="decoration-star">✨</span>
-          <span className="decoration-heart">💖</span>
-          <span className="decoration-star">✨</span>
-        </div>
-        <h1 className="page-title" style={{ color: 'white' }}>Lodge a New Complaint</h1>
-        <p className="page-subtitle" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>Help us make your community better, one report at a time 🌟</p>
+        <h1 className="page-title" style={{ color: '#000000' }}>Lodge a New Complaint</h1>
+        <p className="page-subtitle" style={{ color: '#111', textAlign: 'center' }}>
+          Help us make your community better, one report at a time
+        </p>
       </div>
 
       {/* API error (auth/validation/server) */}
       {apiError && (
         <div className="error-banner">
-          <span>⚠️ {apiError}</span>
+          <span>⚠ {apiError}</span>
         </div>
       )}
 
@@ -631,7 +622,7 @@ const LodgeComplaint = () => {
           {/* Title */}
           <div className={`form-field-wrapper ${animateFields ? 'animate-in' : ''}`} style={{ animationDelay: '0.1s' }}>
             <label className="field-label">
-              <span className="label-icon">📝</span>
+              <span className="label-icon">✏</span>
               <span className="label-text">Complaint Title</span>
               <span className="required-star">*</span>
             </label>
@@ -654,7 +645,7 @@ const LodgeComplaint = () => {
           <div className="form-row">
             <div className={`form-field-wrapper ${animateFields ? 'animate-in' : ''}`} style={{ animationDelay: '0.2s' }}>
               <label className="field-label">
-                <span className="label-icon">🏷️</span>
+                <span className="label-icon">🏷</span>
                 <span className="label-text">Category</span>
                 <span className="required-star">*</span>
               </label>
@@ -741,14 +732,14 @@ const LodgeComplaint = () => {
               
               {mapsError && (
                 <div className="location-error">
-                  <span className="error-icon">⚠️</span>
+                  <span className="error-icon">⚠</span>
                   <span className="error-text">{mapsError}</span>
                 </div>
               )}
               
               {locationSuccess && (
                 <div className="location-success">
-                  <span className="success-icon">✅</span>
+                  <span className="success-icon">✓</span>
                   <span className="success-text">{locationSuccess}</span>
                 </div>
               )}
@@ -836,7 +827,7 @@ const LodgeComplaint = () => {
                     onClick={() => setShowMap(false)}
                     className="btn btn-secondary"
                   >
-                    ✖️ Close Map
+                    ✖ Close Map
                   </button>
                   
                   {selectedLocation && (
@@ -848,7 +839,7 @@ const LodgeComplaint = () => {
                       }}
                       className="btn btn-secondary"
                     >
-                      🗺️ Open in Google Maps
+                      🗺 Open in Google Maps
                     </button>
                   )}
                   
@@ -875,7 +866,7 @@ const LodgeComplaint = () => {
           {/* Description */}
           <div className={`form-field-wrapper ${animateFields ? 'animate-in' : ''}`} style={{ animationDelay: '0.5s' }}>
             <label className="field-label">
-              <span className="label-icon">💬</span>
+              <span className="label-icon">📄</span>
               <span className="label-text">Description</span>
               <span className="required-star">*</span>
             </label>
@@ -907,7 +898,7 @@ const LodgeComplaint = () => {
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
             >
-              <div className="upload-icon">📁</div>
+              <div className="upload-icon">📤</div>
               <div className="upload-text">
                 <span className="primary-text">Drop files here or click to browse</span>
                 <span className="secondary-text">Supports images and PDFs (Max 10MB each)</span>
@@ -943,7 +934,7 @@ const LodgeComplaint = () => {
               className="btn btn-secondary theme-btn-secondary"
               disabled={loading}
             >
-              <span className="btn-icon">🗑️</span>
+              <span className="btn-icon">🗑</span>
               <span className="btn-text">Clear Form</span>
             </button>
             <button
@@ -958,7 +949,7 @@ const LodgeComplaint = () => {
                 </>
               ) : (
                 <>
-                  <span className="btn-icon">🚀</span>
+                  <span className="btn-icon">✓</span>
                   <span className="btn-text">Submit Complaint</span>
                 </>
               )}
@@ -981,9 +972,9 @@ const LodgeComplaint = () => {
               </div>
             </div>
           </div>
-          <h2 className="success-title">Complaint Submitted! 🎉</h2>
+          <h2 className="success-title">Complaint Submitted! ✓</h2>
           <p className="success-message">
-            Thank you for making your community better! We'll review your complaint and get back to you soon. ✨
+            Thank you for making your community better! We'll review your complaint and get back to you soon.
           </p>
           <div className="success-details">
             <span className="detail-item">📧 Confirmation email sent</span>

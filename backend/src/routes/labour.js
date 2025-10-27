@@ -6,6 +6,8 @@ const Complaint = require('../models/Complaint');
 const Labour = require('../models/Labour');
 const Attendance = require('../models/Attendance');
 const { validateAttendanceTime } = require('../utils/timeUtils');
+const { upload, uploadToCloudinary } = require('../config/cloudinary');
+const ComplaintProgressImage = require('../models/ComplaintProgressImage');
 
 const router = express.Router();
 
@@ -191,7 +193,7 @@ router.put('/complaints/:id/status', authenticateToken, requireLabour, async (re
   }
 });
 
-// POST /api/labour/complaints/:id/photos - Add work photos
+// POST /api/labour/complaints/:id/photos - Add work photos (legacy)
 router.post('/complaints/:id/photos', authenticateToken, requireLabour, async (req, res) => {
   try {
     const { id } = req.params;
@@ -232,6 +234,53 @@ router.post('/complaints/:id/photos', authenticateToken, requireLabour, async (r
   } catch (err) {
     console.error('Add work photo error:', err);
     return res.status(500).json({ success: false, message: 'Failed to add work photo' });
+  }
+});
+
+// POST /api/labour/complaints/:id/progress-images - Upload before/after images (multiple)
+router.post('/complaints/:id/progress-images', authenticateToken, requireLabour, upload.array('images', 10), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const labourId = req.user.id;
+    const imageType = (req.body.image_type || req.body.imageType || '').toLowerCase();
+
+    if (!['before', 'after'].includes(imageType)) {
+      return res.status(400).json({ success: false, message: "image_type must be 'before' or 'after'" });
+    }
+
+    // Verify assignment
+    const complaint = await Complaint.findOne({ _id: id, assignedTo: labourId }).select('_id');
+    if (!complaint) {
+      return res.status(404).json({ success: false, message: 'Complaint not found or not assigned to you' });
+    }
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ success: false, message: 'No image files uploaded' });
+    }
+
+    const uploaded = [];
+    for (const file of req.files) {
+      const result = await uploadToCloudinary(file.buffer, `fixitfast_progress/${id}/${imageType}`);
+      const doc = await ComplaintProgressImage.create({
+        complaint: id,
+        imageType,
+        imageUrl: result.secure_url,
+        uploadedBy: labourId,
+        uploadedAt: new Date(),
+        metadata: {
+          public_id: result.public_id,
+          width: result.width,
+          height: result.height,
+          format: result.format,
+        }
+      });
+      uploaded.push(doc);
+    }
+
+    return res.status(201).json({ success: true, message: 'Images uploaded', images: uploaded });
+  } catch (err) {
+    console.error('Upload progress images error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to upload images' });
   }
 });
 

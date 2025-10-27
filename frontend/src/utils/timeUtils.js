@@ -2,15 +2,16 @@
  * Time validation utilities for frontend
  */
 
+// Office hours constants
+const OFFICE_START_HOUR = 9;  // 9:00 AM
+const OFFICE_END_HOUR = 17;   // 5:00 PM (17:00)
+
 /**
  * Check if current time is within office hours (9:00 AM - 5:00 PM)
  * @param {Date} [dateTime] - Optional date to check, defaults to current time
  * @returns {Object} - Result object with isWithinOfficeHours boolean and message
  */
 export const isWithinOfficeHours = (dateTime = new Date()) => {
-  // Define office hours (24-hour format)
-  const OFFICE_START_HOUR = 9;  // 9:00 AM
-  const OFFICE_END_HOUR = 17;   // 5:00 PM (17:00)
 
   // Get current hour (0-23)
   const currentHour = dateTime.getHours();
@@ -127,9 +128,93 @@ export const getTimeUntilOfficeHours = (dateTime = new Date()) => {
   return 'Office hours have ended for today';
 };
 
+/**
+ * Check if it's after office hours (after 5 PM)
+ * @param {Date} [dateTime] - Optional date to check, defaults to current time
+ * @returns {boolean} - True if after 5 PM
+ */
+export const isAfterOfficeHours = (dateTime = new Date()) => {
+  const currentHour = dateTime.getHours();
+  const currentMinute = dateTime.getMinutes();
+  const currentTimeInMinutes = currentHour * 60 + currentMinute;
+  const officeEndInMinutes = OFFICE_END_HOUR * 60; // 5:00 PM = 1020 minutes
+  
+  return currentTimeInMinutes >= officeEndInMinutes;
+};
+
+/**
+ * Check if break button should be enabled
+ * Break is only available when status is exactly 'check_in'
+ * @param {string} currentStatus - Current attendance status
+ * @returns {boolean} - True if break button should be enabled
+ */
+export const isBreakButtonEnabled = (currentStatus) => {
+  return currentStatus === 'check_in';
+};
+
+/**
+ * Check if labour is on leave
+ * @param {boolean} isOnLeave - Leave status from API
+ * @returns {Object} - Object with canMarkAttendance and shouldDisableAllButtons
+ */
+export const getLeaveRestrictions = (isOnLeave) => {
+  return {
+    canMarkAttendance: !isOnLeave,
+    shouldDisableAllButtons: isOnLeave,
+    leaveMessage: isOnLeave 
+      ? '🏠 You are on leave today - all attendance actions are disabled'
+      : null
+  };
+};
+
+/**
+ * Check if auto checkout should be triggered
+ * Auto checkout happens when checked in and it's after 5 PM
+ * @param {string} currentStatus - Current attendance status
+ * @param {Date} [dateTime] - Optional date to check
+ * @returns {Object} - Auto checkout recommendation
+ */
+export const shouldAutoCheckout = (currentStatus, dateTime = new Date()) => {
+  const afterOfficeHours = isAfterOfficeHours(dateTime);
+  const isCheckedIn = currentStatus === 'check_in' || currentStatus === 'on_duty' || currentStatus === 'break';
+  
+  return {
+    shouldCheckout: afterOfficeHours && isCheckedIn,
+    reason: afterOfficeHours && isCheckedIn ? 'Auto-checkout: Office hours ended at 5:00 PM' : null
+  };
+};
+
+/**
+ * Get attendance window status
+ * @param {Date} [dateTime] - Optional date to check
+ * @returns {Object} - Attendance window information
+ */
+export const getAttendanceWindowStatus = (dateTime = new Date()) => {
+  const timeCheck = isWithinOfficeHours(dateTime);
+  const isAfterHours = isAfterOfficeHours(dateTime);
+  
+  return {
+    isWindowActive: timeCheck.isWithinOfficeHours,
+    isAfterHours,
+    windowMessage: timeCheck.isWithinOfficeHours 
+      ? '✅ Attendance window is active (9:00 AM - 5:00 PM)'
+      : isAfterHours 
+        ? '❌ Attendance window closed - Office hours ended at 5:00 PM. Next window opens at 9:00 AM tomorrow.'
+        : '⏰ Attendance window not yet active - Opens at 9:00 AM',
+    currentHour: timeCheck.currentHour,
+    officeStart: OFFICE_START_HOUR,
+    officeEnd: OFFICE_END_HOUR
+  };
+};
+
 export default {
   isWithinOfficeHours,
   getNextOfficeHours,
   canMarkAttendance,
-  getTimeUntilOfficeHours
+  getTimeUntilOfficeHours,
+  isAfterOfficeHours,
+  isBreakButtonEnabled,
+  getLeaveRestrictions,
+  shouldAutoCheckout,
+  getAttendanceWindowStatus
 };
