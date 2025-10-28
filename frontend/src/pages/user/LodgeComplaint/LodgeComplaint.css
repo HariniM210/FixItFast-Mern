@@ -146,6 +146,48 @@
   gap: 1rem;
 }
 
+/* New layout for structured location fields */
+.location-mode-toggle {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+.mode-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  color: #4a5568;
+  font-weight: 600;
+}
+.mode-option input { accent-color: var(--primary-color); }
+
+.location-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .location-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .grid-col-span-2 {
+    grid-column: span 2 / span 2;
+  }
+}
+
+.small-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.4rem;
+}
+
 .location-controls {
   display: flex;
   gap: 0.75rem;

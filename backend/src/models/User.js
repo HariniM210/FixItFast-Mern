@@ -193,7 +193,18 @@ const userSchema = new mongoose.Schema({
       complaint: { type: mongoose.Schema.Types.ObjectId, ref: 'Complaint' },
       accessedAt: { type: Date, default: Date.now }
     }
-  ]
+  ],
+  // Password reset fields
+  resetPasswordToken: {
+    type: String,
+    default: null,
+    select: false
+  },
+  resetPasswordExpires: {
+    type: Date,
+    default: null,
+    select: false
+  }
 }, {
   timestamps: true,
   toJSON: { virtuals: true },

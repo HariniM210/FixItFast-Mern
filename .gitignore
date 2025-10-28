@@ -68,3 +68,4 @@ temp/
 # Documentation builds (if using doc generators)
 docs/.vitepress/cache
 docs/.vitepress/dist
+.vercel

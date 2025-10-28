@@ -190,6 +190,121 @@ const logout = async (req, res) => {
   return res.json({ message: 'Logout successful' });
 };
 
+const nodemailer = require('nodemailer');
+
+// POST /api/auth/forgot-password
+const forgotPassword = async (req, res) => {
+  try {
+    const email = String(req.body.email || '').trim().toLowerCase();
+    if (!email) return res.status(400).json({ message: 'Email is required' });
+
+    const user = await User.findOne({ email });
+    // Always respond the same for privacy, but proceed if user exists
+    if (!user) {
+      return res.status(200).json({ message: "If an account exists, you'll receive a link." });
+    }
+
+    const expiresIn = '15m';
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn });
+
+    // Persist token and expiry for single-use validation
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = expiresAt;
+    await user.save({ validateBeforeSave: false });
+
+    const resetUrlParam = `${process.env.FRONTEND_URL || ''}/reset-password?token=${encodeURIComponent(token)}`;
+
+    // Create transporter
+    const transporter = nodemailer.createTransport({
+      service: process.env.EMAIL_SERVICE,
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+    });
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Reset your password</h2>
+        <p>Hi ${user.name || 'User'},</p>
+        <p>You requested to reset your password. Click the button below to continue. This link expires in 15 minutes.</p>
+        <p style="margin: 24px 0;">
+          <a href="${resetUrlParam}" style="background:#4CAF50;color:white;padding:12px 18px;border-radius:6px;text-decoration:none;">Reset Password</a>
+        </p>
+        <p>If you did not request this, please ignore this email.</p>
+      </div>
+    `;
+
+    await transporter.sendMail({
+      from: `FixItFast Support <${process.env.EMAIL_USER}>`,
+      to: user.email,
+      subject: 'Password Reset Request',
+      html
+    });
+
+    return res.status(200).json({ message: 'Password reset link sent successfully!' });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    return res.status(500).json({ message: 'Failed to process request' });
+  }
+};
+
+// GET /api/auth/reset-password/verify?token=...
+const verifyResetToken = async (req, res) => {
+  try {
+    const token = String(req.query.token || '').trim();
+    if (!token) return res.status(400).json({ valid: false, message: 'Missing token' });
+
+    let payload;
+    try {
+      payload = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (e) {
+      return res.status(400).json({ valid: false, message: 'Invalid or expired token' });
+    }
+
+    const user = await User.findById(payload.id).select('+resetPasswordToken +resetPasswordExpires');
+    if (!user || !user.resetPasswordToken || user.resetPasswordToken !== token) {
+      return res.status(400).json({ valid: false, message: 'Invalid or expired token' });
+    }
+    if (!user.resetPasswordExpires || user.resetPasswordExpires < new Date()) {
+      return res.status(400).json({ valid: false, message: 'Token expired' });
+    }
+
+    return res.json({ valid: true });
+  } catch (err) {
+    return res.status(500).json({ valid: false, message: 'Verification failed' });
+  }
+};
+
+// POST /api/auth/reset-password { token, password }
+const resetPassword = async (req, res) => {
+  try {
+    const { token, password } = req.body || {};
+    if (!token || !password) return res.status(400).json({ message: 'Token and password are required' });
+
+    let payload;
+    try {
+      payload = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (e) {
+      return res.status(400).json({ message: 'Invalid or expired token' });
+    }
+
+    const user = await User.findById(payload.id).select('+resetPasswordToken +resetPasswordExpires +password');
+    if (!user || user.resetPasswordToken !== token || !user.resetPasswordExpires || user.resetPasswordExpires < new Date()) {
+      return res.status(400).json({ message: 'Invalid or expired token' });
+    }
+
+    // Update password and clear reset fields
+    user.password = String(password);
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+    await user.save();
+
+    return res.json({ message: 'Password has been reset successfully' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    return res.status(500).json({ message: 'Failed to reset password' });
+  }
+};
+
 // Export with both naming styles for safety
 module.exports = {
   register,
@@ -197,5 +312,8 @@ module.exports = {
   getMe,
   logout,
   registerUser: register,
-  loginUser: login
+  loginUser: login,
+  forgotPassword,
+  verifyResetToken,
+  resetPassword
 };

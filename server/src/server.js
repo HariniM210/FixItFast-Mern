@@ -5,6 +5,10 @@ const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const session = require("express-session");
 const passport = require("passport");
+const path = require('path');
+// Ensure backend files can resolve deps from /server/node_modules during Vercel build
+process.env.NODE_PATH = path.resolve(__dirname, '..', 'node_modules');
+require('module').Module._initPaths();
 
 let morgan;
 try {
@@ -37,11 +41,6 @@ if (cloudinaryConfigured) {
 }
 
 const app = express();
-
-// Simple health route (does not depend on DB)
-app.get('/api/health', (req, res) => {
-  return res.json({ status: 'ok', env: process.env.NODE_ENV || 'development' });
-});
 
 // Make cloudinary status available globally
 global.cloudinaryConfigured = cloudinaryConfigured;
@@ -156,19 +155,19 @@ const connectDatabase = async () => {
 };
 
 // ---------------- Routes ----------------
-const authRoutes = require('./routes/auth');
-const complaintRoutes = require('./routes/complaints');
-const profileRoutes = require('./routes/profile');
-const dashboardRoutes = require('./routes/dashboard');
-const healthRoute = require('./routes/health');
-const contactRoutes = require('./routes/contact'); // Add contact routes
-const feedbackRoutes = require('./routes/feedback'); // Add feedback routes
-const adminsRoutes = require('./routes/admin');
-const superadminRoutes = require('./routes/superadmin');
-const labourRoutes = require('./routes/labour');
-const superadminLabourRoutes = require('./routes/labourRoutes');
-const userRecentRoutes = require('./routes/userRecent');
-const adminProfileRoutes = require('./routes/adminProfile');
+const authRoutes = require('../../backend/src/routes/auth');
+const complaintRoutes = require('../../backend/src/routes/complaints');
+const profileRoutes = require('../../backend/src/routes/profile');
+const dashboardRoutes = require('../../backend/src/routes/dashboard');
+const healthRoute = require('../../backend/src/routes/health');
+const contactRoutes = require('../../backend/src/routes/contact');
+const feedbackRoutes = require('../../backend/src/routes/feedback');
+const adminsRoutes = require('../../backend/src/routes/admin');
+const superadminRoutes = require('../../backend/src/routes/superadmin');
+const labourRoutes = require('../../backend/src/routes/labour');
+const superadminLabourRoutes = require('../../backend/src/routes/labourRoutes');
+const userRecentRoutes = require('../../backend/src/routes/userRecent');
+const adminProfileRoutes = require('../../backend/src/routes/adminProfile');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/complaints', complaintRoutes);
@@ -258,4 +257,3 @@ if (!isVercel) {
 }
 
 module.exports = app;
-module.exports.default = app;

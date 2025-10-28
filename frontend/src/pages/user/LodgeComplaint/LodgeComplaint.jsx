@@ -50,10 +50,16 @@ const LodgeComplaint = () => {
     category: '',
     priority: 'Medium',
     location: '',
+    // New structured location fields
+    district: '',
+    city: '',
+    address: '',
+    pincode: '',
     description: '',
     files: [],
     coordinates: { lat: null, lng: null }
   });
+  const [locationMode, setLocationMode] = useState('manual'); // 'manual' | 'map'
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -154,6 +160,30 @@ const LodgeComplaint = () => {
   };
   
   // Reverse geocode without requiring the map to be loaded (for immediate location detection)
+  const applyAddressComponents = (components, formatted) => {
+    // Helper to extract component by type
+    const getComp = (type) => {
+      const comp = components?.find(c => c.types.includes(type));
+      return comp ? (comp.long_name || comp.short_name || '') : '';
+    };
+    const district = getComp('administrative_area_level_2') || getComp('administrative_area_level_3') || getComp('subadministrative_area') || '';
+    const city = getComp('locality') || getComp('sublocality') || getComp('postal_town') || getComp('administrative_area_level_3') || '';
+    const postcode = getComp('postal_code') || '';
+    const route = getComp('route');
+    const streetNumber = getComp('street_number');
+    const premise = getComp('premise') || getComp('neighborhood') || '';
+    const addressLine = [streetNumber && route ? `${streetNumber} ${route}` : route, premise].filter(Boolean).join(', ') || formatted || '';
+
+    setFormData(prev => ({
+      ...prev,
+      district,
+      city,
+      address: addressLine,
+      pincode: postcode,
+      location: formatted || prev.location
+    }));
+  };
+
   const reverseGeocodeWithoutMap = async (lat, lng) => {
     try {
       if (!DEMO_MODE) {
@@ -162,11 +192,9 @@ const LodgeComplaint = () => {
         const data = await response.json();
         
         if (data.status === 'OK' && data.results[0]) {
-          const address = data.results[0].formatted_address;
-          setFormData(prev => ({
-            ...prev,
-            location: address
-          }));
+          const res0 = data.results[0];
+          const address = res0.formatted_address;
+          applyAddressComponents(res0.address_components, address);
         } else {
           setFormData(prev => ({
             ...prev,
@@ -181,10 +209,8 @@ const LodgeComplaint = () => {
         }));
       }
       
-      // Clear location error if it exists
-      if (errors.location) {
-        setErrors(prev => ({ ...prev, location: undefined }));
-      }
+      // Clear location-related errors if present
+      setErrors(prev => ({ ...prev, district: undefined, city: undefined, address: undefined, pincode: undefined, location: undefined }));
     } catch (error) {
       console.error('Reverse geocoding failed:', error);
       // Fallback to coordinates
@@ -383,15 +409,11 @@ const LodgeComplaint = () => {
     
     geocoder.geocode({ location }, (results, status) => {
       if (status === 'OK' && results[0]) {
-        const address = results[0].formatted_address;
-        setFormData(prev => ({
-          ...prev,
-          location: address
-        }));
+        const res0 = results[0];
+        const address = res0.formatted_address;
+        applyAddressComponents(res0.address_components, address);
         
-        if (errors.location) {
-          setErrors(prev => ({ ...prev, location: undefined }));
-        }
+        setErrors(prev => ({ ...prev, district: undefined, city: undefined, address: undefined, pincode: undefined, location: undefined }));
       } else {
         console.error('Geocoder failed due to: ', status);
         setFormData(prev => ({
@@ -440,7 +462,22 @@ const LodgeComplaint = () => {
     if (!formData.title.trim()) newErrors.title = 'Title is required';
     if (!formData.category) newErrors.category = 'Please select a category';
     if (!formData.priority) newErrors.priority = 'Priority level is needed';
-    if (!formData.location.trim()) newErrors.location = 'Location details required';
+
+    if (locationMode === 'manual') {
+      if (!formData.district.trim()) newErrors.district = 'District is required';
+      if (!formData.city.trim()) newErrors.city = 'City is required';
+      if (!formData.address.trim()) newErrors.address = 'Address is required';
+      if (!/^[0-9]{6}$/.test(formData.pincode)) newErrors.pincode = 'Pincode must be 6 digits';
+      // Construct location string from fields
+      const locStr = `${formData.address.trim()}, ${formData.city.trim()}, ${formData.district.trim()} - ${formData.pincode.trim()}`;
+      if (!locStr || locStr.replace(/[\s,-]/g, '').length === 0) newErrors.location = 'Location details required';
+    } else {
+      // Map mode: ensure we have coordinates or a resolved address
+      if (!formData.coordinates.lat || !formData.coordinates.lng) newErrors.location = 'Please select a location on the map or use current location';
+      // Best-effort pincode check if present
+      if (formData.pincode && !/^[0-9]{6}$/.test(formData.pincode)) newErrors.pincode = 'Pincode must be 6 digits';
+    }
+
     if (!formData.description.trim()) newErrors.description = 'Description is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -463,6 +500,13 @@ const LodgeComplaint = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setApiError('');
+
+    // For manual mode, compose the location string before validation/submission
+    if (locationMode === 'manual') {
+      const locStr = `${formData.address.trim()}, ${formData.city.trim()}, ${formData.district.trim()} - ${formData.pincode.trim()}`;
+      setFormData(prev => ({ ...prev, location: locStr }));
+    }
+
     if (!validate()) return;
 
     // Require auth token
@@ -485,7 +529,23 @@ const LodgeComplaint = () => {
       formDataToSend.append('description', formData.description.trim());
       formDataToSend.append('category', formData.category);
       formDataToSend.append('priority', formData.priority);
-      formDataToSend.append('location', formData.location.trim());
+      
+      // Structured location fields (in addition to legacy 'location')
+      formDataToSend.append('locationDistrict', (formData.district || '').trim());
+      formDataToSend.append('locationCity', (formData.city || '').trim());
+      formDataToSend.append('locationAddress', (formData.address || '').trim());
+      formDataToSend.append('locationPincode', (formData.pincode || '').trim());
+
+      // Legacy combined location string
+      const combinedLocation = (formData.location && formData.location.trim())
+        || `${(formData.address||'').trim()}, ${(formData.city||'').trim()}, ${(formData.district||'').trim()} ${(formData.pincode?'- '+formData.pincode:'')}`.trim();
+      formDataToSend.append('location', combinedLocation);
+      
+      // Coordinates if available
+      if (formData.coordinates.lat && formData.coordinates.lng) {
+        formDataToSend.append('lat', String(formData.coordinates.lat));
+        formDataToSend.append('lng', String(formData.coordinates.lng));
+      }
       
       // Add files if any
       if (formData.files && formData.files.length > 0) {
@@ -564,10 +624,15 @@ const LodgeComplaint = () => {
       category: '',
       priority: 'Medium',
       location: '',
+      district: '',
+      city: '',
+      address: '',
+      pincode: '',
       description: '',
       files: [],
       coordinates: { lat: null, lng: null }
     });
+    setLocationMode('manual');
     setErrors({});
     setApiError('');
     setProgress(0);
@@ -692,175 +757,271 @@ const LodgeComplaint = () => {
             </div>
           </div>
 
-          {/* Location with Google Maps */}
+          {/* Location with Manual/Map modes */}
           <div className={`form-field-wrapper ${animateFields ? 'animate-in' : ''}`} style={{ animationDelay: '0.4s' }}>
             <label className="field-label">
               <span className="label-icon">📍</span>
               <span className="label-text">Location</span>
               <span className="required-star">*</span>
             </label>
-            
-            {/* Location Input with Google Places Autocomplete */}
-            <div className="location-input-section">
-              <div className="input-container">
+
+            {/* Mode Toggle */}
+            <div className="location-mode-toggle">
+              <label className="mode-option">
                 <input
-                  type="text"
-                  id="location-search-input"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleChange}
-                  placeholder={isLoadingMaps && !showMap ? "Getting your location..." : "Search for address, landmark, or area..."}
-                  className={`form-input theme-input ${errors.location ? 'error' : ''}`}
-                  disabled={isLoadingMaps && !showMap}
-                  required
+                  type="radio"
+                  name="locationMode"
+                  value="manual"
+                  checked={locationMode === 'manual'}
+                  onChange={() => setLocationMode('manual')}
                 />
-                <div className="input-decoration"></div>
-                {isLoadingMaps && !showMap && (
-                  <div className="input-loading">
-                    <div className="loading-spinner"></div>
-                  </div>
-                )}
-              </div>
-              
-              {/* Location detection feedback */}
-              {isLoadingMaps && !showMap && (
-                <div className="location-status">
-                  <span className="status-icon">📍</span>
-                  <span className="status-text">Detecting your current location...</span>
-                </div>
-              )}
-              
-              {mapsError && (
-                <div className="location-error">
-                  <span className="error-icon">⚠</span>
-                  <span className="error-text">{mapsError}</span>
-                </div>
-              )}
-              
-              {locationSuccess && (
-                <div className="location-success">
-                  <span className="success-icon">✓</span>
-                  <span className="success-text">{locationSuccess}</span>
-                </div>
-              )}
-              
-              {/* Map Controls */}
-              <div className="location-controls">
-                <button
-                  type="button"
-                  onClick={toggleMap}
-                  className="btn-map-toggle"
-                  title="Toggle Google Maps"
-                  disabled={isLoadingMaps && !showMap}
-                >
-                  <span className="btn-icon">🌍</span>
-                  <span className="btn-text">{showMap ? 'Hide Google Maps' : 'Show Google Maps'}</span>
-                </button>
-                
-                <button
-                  type="button"
-                  onClick={getCurrentLocation}
-                  className="btn-location"
-                  title="Get Current Location"
-                  disabled={isLoadingMaps}
-                >
-                  {isLoadingMaps && !showMap ? (
-                    <>
-                      <div className="loading-spinner small"></div>
-                      <span className="btn-text">Getting Location...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="btn-icon">📍</span>
-                      <span className="btn-text">Use My Location</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-            
-            {/* Selected coordinates display */}
-            {selectedLocation && (
-              <div className="coordinates-display">
-                <span className="coordinates-label">📍 Selected Location:</span>
-                <span className="coordinates-text">
-                  {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
-                </span>
-              </div>
-            )}
-            
-            {/* Google Maps Container */}
-            {showMap && (
-              <div className="map-container">
-                <div className="map-header">
-                  <h3 className="map-title">🌍 Select Complaint Location</h3>
-                  <div className="map-instructions">
-                    Click anywhere on the map to set the location, or use the search box above
-                  </div>
-                </div>
-                
-                
-                {/* Google Maps Loading */}
-                {isLoadingMaps && (
-                  <div className="maps-loading">
-                    <div className="loading-spinner"></div>
-                    <span>Loading Google Maps...</span>
-                  </div>
-                )}
-                
-                {/* Google Maps */}
-                <div 
-                  ref={mapRef}
-                  className="google-maps"
-                  style={{
-                    width: '100%',
-                    height: '400px',
-                    borderRadius: '8px',
-                    display: isLoadingMaps ? 'none' : 'block'
+                <span>Enter manually</span>
+              </label>
+              <label className="mode-option">
+                <input
+                  type="radio"
+                  name="locationMode"
+                  value="map"
+                  checked={locationMode === 'map'}
+                  onChange={() => {
+                    setLocationMode('map');
+                    if (!mapInstanceRef.current && !showMap) {
+                      setShowMap(true);
+                      setTimeout(initializeMap, 100);
+                    }
                   }}
                 />
-                
-                {/* Map Actions */}
-                <div className="map-actions">
-                  <button
-                    type="button"
-                    onClick={() => setShowMap(false)}
-                    className="btn btn-secondary"
-                  >
-                    ✖ Close Map
-                  </button>
-                  
-                  {selectedLocation && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const googleMapsUrl = `https://www.google.com/maps?q=${selectedLocation.lat},${selectedLocation.lng}&z=17`;
-                        window.open(googleMapsUrl, '_blank');
-                      }}
-                      className="btn btn-secondary"
-                    >
-                      🗺 Open in Google Maps
-                    </button>
+                <span>Use map</span>
+              </label>
+            </div>
+
+            {locationMode === 'manual' ? (
+              <div className="location-grid">
+                <div className="input-container">
+                  <label className="small-label">District<span className="required-star">*</span></label>
+                  <input
+                    type="text"
+                    name="district"
+                    value={formData.district}
+                    onChange={handleChange}
+                    placeholder="Enter your district"
+                    className={`form-input theme-input ${errors.district ? 'error' : ''}`}
+                    required
+                  />
+                </div>
+                <div className="input-container">
+                  <label className="small-label">City<span className="required-star">*</span></label>
+                  <input
+                    type="text"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleChange}
+                    placeholder="Enter your city"
+                    className={`form-input theme-input ${errors.city ? 'error' : ''}`}
+                    required
+                  />
+                </div>
+                <div className="input-container grid-col-span-2">
+                  <label className="small-label">Address<span className="required-star">*</span></label>
+                  <textarea
+                    name="address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    placeholder="House no, street, area..."
+                    className={`form-textarea theme-textarea ${errors.address ? 'error' : ''}`}
+                    rows="3"
+                    required
+                  />
+                </div>
+                <div className="input-container">
+                  <label className="small-label">Pincode<span className="required-star">*</span></label>
+                  <input
+                    type="text"
+                    name="pincode"
+                    value={formData.pincode}
+                    onChange={(e) => {
+                      const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      setFormData(d => ({ ...d, pincode: digitsOnly }));
+                      if (errors.pincode) setErrors(errs => ({ ...errs, pincode: undefined }));
+                    }}
+                    placeholder="6-digit pincode"
+                    inputMode="numeric"
+                    pattern="^[0-9]{6}$"
+                    className={`form-input theme-input ${errors.pincode ? 'error' : ''}`}
+                    required
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="location-input-section">
+                {/* Search input for Places */}
+                <div className="input-container">
+                  <input
+                    type="text"
+                    id="location-search-input"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleChange}
+                    placeholder={isLoadingMaps && !showMap ? "Getting your location..." : "Search for address, landmark, or area..."}
+                    className={`form-input theme-input ${errors.location ? 'error' : ''}`}
+                    disabled={isLoadingMaps && !showMap}
+                  />
+                  <div className="input-decoration"></div>
+                  {isLoadingMaps && !showMap && (
+                    <div className="input-loading">
+                      <div className="loading-spinner"></div>
+                    </div>
                   )}
-                  
+                </div>
+
+                {/* Map Controls */}
+                <div className="location-controls">
                   <button
                     type="button"
                     onClick={() => {
-                      if (mapInstanceRef.current && selectedLocation) {
-                        mapInstanceRef.current.setCenter(selectedLocation);
-                        mapInstanceRef.current.setZoom(18);
-                      }
+                      const newVal = !showMap;
+                      setShowMap(newVal);
+                      if (newVal && !mapInstanceRef.current) setTimeout(initializeMap, 100);
                     }}
-                    className="btn btn-secondary"
-                    disabled={!selectedLocation}
+                    className="btn-map-toggle"
+                    title="Toggle Google Maps"
+                    disabled={isLoadingMaps && !showMap}
                   >
-                    🎯 Center on Selection
+                    <span className="btn-icon">🌍</span>
+                    <span className="btn-text">{showMap ? 'Hide Google Maps' : 'Show Google Maps'}</span>
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={getCurrentLocation}
+                    className="btn-location"
+                    title="Get Current Location"
+                    disabled={isLoadingMaps}
+                  >
+                    {isLoadingMaps && !showMap ? (
+                      <>
+                        <div className="loading-spinner small"></div>
+                        <span className="btn-text">Getting Location...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="btn-icon">📍</span>
+                        <span className="btn-text">Use My Location</span>
+                      </>
+                    )}
                   </button>
                 </div>
+
+                {/* Selected coordinates display */}
+                {selectedLocation && (
+                  <div className="coordinates-display">
+                    <span className="coordinates-label">📍 Selected Location:</span>
+                    <span className="coordinates-text">
+                      {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
+                    </span>
+                  </div>
+                )}
+
+                {/* Google Maps Container */}
+                {showMap && (
+                  <div className="map-container">
+                    <div className="map-header">
+                      <h3 className="map-title">🌍 Select Complaint Location</h3>
+                      <div className="map-instructions">
+                        Click anywhere on the map to set the location, or use the search box above
+                      </div>
+                    </div>
+
+                    {isLoadingMaps && (
+                      <div className="maps-loading">
+                        <div className="loading-spinner"></div>
+                        <span>Loading Google Maps...</span>
+                      </div>
+                    )}
+
+                    <div 
+                      ref={mapRef}
+                      className="google-maps"
+                      style={{
+                        width: '100%',
+                        height: '400px',
+                        borderRadius: '8px',
+                        display: isLoadingMaps ? 'none' : 'block'
+                      }}
+                    />
+
+                    <div className="map-actions">
+                      <button
+                        type="button"
+                        onClick={() => setShowMap(false)}
+                        className="btn btn-secondary"
+                      >
+                        ✖ Close Map
+                      </button>
+                      
+                      {selectedLocation && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const googleMapsUrl = `https://www.google.com/maps?q=${selectedLocation.lat},${selectedLocation.lng}&z=17`;
+                            window.open(googleMapsUrl, '_blank');
+                          }}
+                          className="btn btn-secondary"
+                        >
+                          🗺 Open in Google Maps
+                        </button>
+                      )}
+                      
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (mapInstanceRef.current && selectedLocation) {
+                            mapInstanceRef.current.setCenter(selectedLocation);
+                            mapInstanceRef.current.setZoom(18);
+                          }
+                        }}
+                        className="btn btn-secondary"
+                        disabled={!selectedLocation}
+                      >
+                        🎯 Center on Selection
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Show parsed address fields (read-only) for confirmation */}
+                <div className="location-grid" style={{ marginTop: '12px' }}>
+                  <div className="input-container">
+                    <label className="small-label">District</label>
+                    <input type="text" value={formData.district} readOnly className="form-input theme-input" />
+                  </div>
+                  <div className="input-container">
+                    <label className="small-label">City</label>
+                    <input type="text" value={formData.city} readOnly className="form-input theme-input" />
+                  </div>
+                  <div className="input-container grid-col-span-2">
+                    <label className="small-label">Address</label>
+                    <textarea value={formData.address} readOnly className="form-textarea theme-textarea" rows="2" />
+                  </div>
+                  <div className="input-container">
+                    <label className="small-label">Pincode</label>
+                    <input type="text" value={formData.pincode} readOnly className="form-input theme-input" />
+                  </div>
+                </div>
+
+                {errors.location && <div className="error-message">{errors.location}</div>}
               </div>
             )}
-            
-            {errors.location && <div className="error-message">{errors.location}</div>}
+
+            {/* Inline validation messages for manual mode */}
+            {locationMode === 'manual' && (
+              <div className="grid-errors">
+                {errors.district && <div className="error-message">{errors.district}</div>}
+                {errors.city && <div className="error-message">{errors.city}</div>}
+                {errors.address && <div className="error-message">{errors.address}</div>}
+                {errors.pincode && <div className="error-message">{errors.pincode}</div>}
+              </div>
+            )}
           </div>
 
           {/* Description */}

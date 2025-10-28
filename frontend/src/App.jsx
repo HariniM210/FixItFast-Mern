@@ -64,6 +64,8 @@ import AuthDebug from './components/AuthDebug'
 import StatusUpdateTest from './components/StatusUpdateTest'
 import AdminChangePassword from './pages/admin/AdminChangePassword/AdminChangePassword'
 import CreateLabour from './pages/admin/CreateLabour/CreateLabour';
+import ForgotPassword from './pages/auth/ForgotPassword/ForgotPassword'
+import ResetPassword from './pages/auth/ResetPassword/ResetPassword'
 
 
 const Layout = ({ children }) => {
@@ -137,6 +139,8 @@ function App() {
                 {/* Auth Routes */}
                 <Route path="/register" element={<Register />} />
                 <Route path="/signin" element={<SignIn />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/labour" element={<LabourLogin />} />
                 <Route path="/labour/login" element={<LabourLogin />} />
                 <Route path="/auth/callback" element={<OAuthCallback />} />

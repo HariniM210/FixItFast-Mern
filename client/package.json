@@ -1,0 +1,7 @@
+{
+  "name": "client",
+  "private": true,
+  "scripts": {
+    "build": "sh -c 'cd ../frontend && (npm ci --no-audit --fund=false || npm install) && npm run build && rm -rf ../client/dist && cp -r dist ../client/dist'"
+  }
+}

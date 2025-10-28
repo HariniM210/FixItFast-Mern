@@ -3,11 +3,20 @@ import axios from 'axios';
 
 // Resolve API base URL across Vite and CRA-style envs
 const resolveApiBaseUrl = () => {
+  // Prefer same-origin API in the browser for production to avoid CORS and hard-coded hosts
+  try {
+    const origin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
+    if (origin && !/localhost|127\.0\.0\.1/i.test(origin)) {
+      const cleanedOrigin = String(origin).replace(/\/$/, '');
+      return `${cleanedOrigin}/api`;
+    }
+  } catch (_) {}
+
+  // Otherwise, use env vars or fallback to local dev
   const viteUrl = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_API_BASE_URL : undefined;
   const craUrl = typeof process !== 'undefined' ? (process.env?.REACT_APP_API_URL || process.env?.REACT_APP_BACKEND_URL) : undefined;
-  const raw = viteUrl || craUrl || 'http://localhost:5000/api';
+  let raw = viteUrl || craUrl || 'http://localhost:5000/api';
   const cleaned = String(raw).replace(/\/$/, '');
-  // Ensure trailing /api for consistent backend mount
   return cleaned.endsWith('/api') ? cleaned : `${cleaned}/api`;
 };
 
@@ -96,6 +105,11 @@ export const authAPI = {
   // Standardize under /api/auth
   register: (userData) => API.post('/auth/register', userData),
   getMe: () => API.get('/auth/me'),
+
+  // Password reset flow
+  requestPasswordReset: (email) => API.post('/auth/forgot-password', { email }),
+  verifyResetToken: (token) => API.get('/auth/reset-password/verify', { params: { token } }),
+  resetPassword: ({ token, password }) => API.post('/auth/reset-password', { token, password }),
 };
 
 // Labour API calls

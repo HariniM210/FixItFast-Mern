@@ -26,4 +26,10 @@ router.post('/login', loginValidation, login);
 router.get('/me', authenticateToken, getMe);
 router.post('/logout', logout);
 
+// Password reset routes
+const { forgotPassword, verifyResetToken, resetPassword } = require('../controllers/authController');
+router.post('/forgot-password', forgotPassword);
+router.get('/reset-password/verify', verifyResetToken);
+router.post('/reset-password', resetPassword);
+
 module.exports = router;
