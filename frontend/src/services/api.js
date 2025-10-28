@@ -1,9 +1,17 @@
 // frontend/src/service/api.js
 import axios from 'axios';
 
-// Resolve API base URL across Vite and CRA-style envs
+// Resolve API base URL across environments
 const resolveApiBaseUrl = () => {
-  // Prefer same-origin API in the browser for production to avoid CORS and hard-coded hosts
+  // 1) Explicit env var takes precedence (so hosting like Vercel can point to Render backend)
+  const envUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL)
+    || (typeof process !== 'undefined' && (process.env?.REACT_APP_API_URL || process.env?.REACT_APP_BACKEND_URL));
+  if (envUrl) {
+    const cleaned = String(envUrl).replace(/\/$/, '');
+    return cleaned.endsWith('/api') ? cleaned : `${cleaned}/api`;
+  }
+
+  // 2) Otherwise, try same-origin (requires a reverse-proxy/rewrites for "/api/*")
   try {
     const origin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
     if (origin && !/localhost|127\.0\.0\.1/i.test(origin)) {
@@ -12,12 +20,8 @@ const resolveApiBaseUrl = () => {
     }
   } catch (_) {}
 
-  // Otherwise, use env vars or fallback to local dev
-  const viteUrl = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_API_BASE_URL : undefined;
-  const craUrl = typeof process !== 'undefined' ? (process.env?.REACT_APP_API_URL || process.env?.REACT_APP_BACKEND_URL) : undefined;
-  let raw = viteUrl || craUrl || 'http://localhost:5000/api';
-  const cleaned = String(raw).replace(/\/$/, '');
-  return cleaned.endsWith('/api') ? cleaned : `${cleaned}/api`;
+  // 3) Fallback to local dev
+  return 'http://localhost:5000/api';
 };
 
 // Create axios instance with base configuration
