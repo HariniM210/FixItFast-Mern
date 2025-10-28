@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import axios from 'axios';
+import { adminAPI } from '../../../services/api';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Using shared adminAPI from services/api
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -73,8 +73,8 @@ const AdminLogin = () => {
         loginData.secretKey = formData.secretKey;
       }
 
-      const response = await axios.post(`${API_BASE_URL}/admin/login`, loginData, {
-        headers: {
+const response = await adminAPI.login(loginData);
+/* headers handled by API instance */
           'Content-Type': 'application/json'
         }
       });

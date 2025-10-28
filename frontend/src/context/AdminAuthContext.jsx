@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { jwtDecode } from 'jwt-decode';
-import axios from 'axios';
+import { adminAPI } from '../services/api';
 
 const AdminAuthContext = createContext();
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+// Using shared adminAPI from services/api
 
 export const useAdminAuth = () => {
   const context = useContext(AdminAuthContext);
@@ -91,13 +91,8 @@ export const AdminAuthProvider = ({ children }) => {
         }
 
         // Verify token with backend
-        try {
-          const response = await axios.get(`${API_BASE_URL}/admin/me`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
+try {
+          const response = await adminAPI.getMe();
           
           if (!mounted) return;
           
@@ -161,15 +156,11 @@ export const AdminAuthProvider = ({ children }) => {
   const adminLogin = async (credentials) => {
     setLoading(true);
     
-    try {
-      const response = await axios.post(`${API_BASE_URL}/admin/login`, {
+try {
+      const response = await adminAPI.login({
         email: credentials.email,
         password: credentials.password,
         secretKey: credentials.secretKey
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
       });
 
       if (response.data.success) {

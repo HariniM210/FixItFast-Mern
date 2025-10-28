@@ -25,7 +25,7 @@ const resolveApiBaseUrl = () => {
 };
 
 // Create axios instance with base configuration
-const API = axios.create({
+export const API = axios.create({
   baseURL: resolveApiBaseUrl(),
   timeout: 15000,
   headers: {

@@ -1,7 +1,7 @@
 // apiUtils.js - Simple utility functions for API calls
-import axios from 'axios';
+import { API } from '../services/api';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+// Use shared API instance; baseURL comes from services/api
 
 // Get JWT token from localStorage (adjust based on how you store it)
 const getAuthToken = () => {
@@ -11,7 +11,7 @@ const getAuthToken = () => {
 };
 
 // Create axios instance with default config
-const api = axios.create({
+const api = API;
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -19,7 +19,7 @@ const api = axios.create({
 });
 
 // Add token to all requests
-api.interceptors.request.use(
+// Interceptors are already set on shared API instance
   (config) => {
     const token = getAuthToken();
     if (token) {
@@ -36,7 +36,7 @@ api.interceptors.request.use(
 );
 
 // Handle responses and errors
-api.interceptors.response.use(
+// Response interceptors provided by shared API
   (response) => {
     console.log('✅ API Response:', response.config.method.toUpperCase(), response.config.url, response.status);
     return response;
