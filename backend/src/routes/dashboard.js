@@ -226,6 +226,7 @@ router.get('/admin/stats', authenticateToken, async (req, res) => {
         _id: null,
         totalComplaints: { $sum: 1 },
         pendingComplaints: { $sum: { $cond: [{ $eq: ['$status', 'Pending'] }, 1, 0] } },
+        assignedComplaints: { $sum: { $cond: [{ $eq: ['$status', 'Assigned'] }, 1, 0] } },
         inProgressComplaints: { $sum: { $cond: [{ $eq: ['$status', 'In Progress'] }, 1, 0] } },
         resolvedComplaints: { $sum: { $cond: [{ $eq: ['$status', 'Resolved'] }, 1, 0] } },
         rejectedComplaints: { $sum: { $cond: [{ $eq: ['$status', 'Rejected'] }, 1, 0] } }
@@ -263,6 +264,7 @@ router.get('/admin/stats', authenticateToken, async (req, res) => {
       statistics: {
         totalComplaints: statsRow.totalComplaints || 0,
         pendingComplaints: statsRow.pendingComplaints || 0,
+        assignedComplaints: statsRow.assignedComplaints || 0,
         inProgressComplaints: statsRow.inProgressComplaints || 0,
         resolvedComplaints: statsRow.resolvedComplaints || 0,
         rejectedComplaints: statsRow.rejectedComplaints || 0,

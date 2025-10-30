@@ -121,6 +121,7 @@ const AdminDashboard = () => {
       return {
         totalComplaints: stats.totalComplaints || 0,
         pending: stats.pendingComplaints || 0,
+        assigned: stats.assignedComplaints || 0,
         inProgress: stats.inProgressComplaints || 0,
         resolved: stats.resolvedComplaints || 0,
         newToday: complaints.filter(c => {
@@ -134,6 +135,7 @@ const AdminDashboard = () => {
       return {
         totalComplaints: complaints.length,
         pending: complaints.filter(c => c.status === COMPLAINT_STATUSES.PENDING).length,
+        assigned: complaints.filter(c => c.status === COMPLAINT_STATUSES.ASSIGNED).length,
         inProgress: complaints.filter(c => c.status === COMPLAINT_STATUSES.IN_PROGRESS).length,
         resolved: complaints.filter(c => c.status === COMPLAINT_STATUSES.RESOLVED).length,
         newToday: complaints.filter(c => {
@@ -223,6 +225,10 @@ const AdminDashboard = () => {
           <div className="stat-card pending theme-card-elevated">
             <h3 className="theme-text-primary">Pending</h3>
             <span className="stat-number theme-text-primary">{dashboardStats.pending}</span>
+          </div>
+          <div className="stat-card assigned theme-card-elevated">
+            <h3 className="theme-text-primary">Assigned</h3>
+            <span className="stat-number theme-text-primary">{dashboardStats.assigned}</span>
           </div>
           <div className="stat-card progress theme-card-elevated">
             <h3 className="theme-text-primary">Inprogress</h3>

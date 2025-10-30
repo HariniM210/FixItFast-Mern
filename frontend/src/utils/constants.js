@@ -3,6 +3,7 @@
 // Complaint Status Constants
 export const COMPLAINT_STATUSES = {
   PENDING: 'Pending',
+  ASSIGNED: 'Assigned',
   IN_PROGRESS: 'In Progress',  // Backend expects two words with space
   RESOLVED: 'Resolved'
 };
@@ -10,6 +11,7 @@ export const COMPLAINT_STATUSES = {
 // Status flow order for UI display
 export const STATUS_ORDER = [
   COMPLAINT_STATUSES.PENDING,
+  COMPLAINT_STATUSES.ASSIGNED,
   COMPLAINT_STATUSES.IN_PROGRESS,
   COMPLAINT_STATUSES.RESOLVED
 ];
@@ -17,6 +19,7 @@ export const STATUS_ORDER = [
 // Status colors for UI
 export const STATUS_COLORS = {
   [COMPLAINT_STATUSES.PENDING]: '#fbbf24',     // Yellow
+  [COMPLAINT_STATUSES.ASSIGNED]: '#8b5cf6',    // Purple
   [COMPLAINT_STATUSES.IN_PROGRESS]: '#3b82f6', // Blue  
   [COMPLAINT_STATUSES.RESOLVED]: '#10b981'     // Green
 };
@@ -24,6 +27,7 @@ export const STATUS_COLORS = {
 // Status icons for UI
 export const STATUS_ICONS = {
   [COMPLAINT_STATUSES.PENDING]: '⏳',
+  [COMPLAINT_STATUSES.ASSIGNED]: '📌',
   [COMPLAINT_STATUSES.IN_PROGRESS]: '🔄',
   [COMPLAINT_STATUSES.RESOLVED]: '✅'
 };
