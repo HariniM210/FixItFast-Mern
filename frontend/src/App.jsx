@@ -143,8 +143,9 @@ const Layout = ({ children }) => {
 
 // ✅ Main App Component 
 function App() {
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   return (
-    <GoogleOAuthProvider clientId="573153830854-5fenft88h2nl8miaf2fpl8a4u4ahncho.apps.googleusercontent.com">
+    <GoogleOAuthProvider clientId={googleClientId}>
       <ThemeProvider>
         <AuthProvider>
           <AdminAuthProvider>
