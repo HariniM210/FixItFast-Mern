@@ -1,4 +1,5 @@
 // backend/src/server.js
+// ✅ Fixed Google OAuth Integration
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -86,17 +87,24 @@ app.use(express.urlencoded({ extended: true }));
 
 // Serve uploaded files statically
 app.use('/uploads', express.static('uploads'));
+
+// ✅ Session middleware for Passport (Google OAuth)
 app.use(
   session({
     secret: process.env.JWT_SECRET || "fixitfast_secret",
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false }, // secure:true in production with HTTPS
+    cookie: { 
+      secure: false, // Set to true in production with HTTPS
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
   })
 );
 
-app.use(passport.initialize());
-app.use(passport.session());
+// ✅ Initialize Passport AFTER loading config
+const passportConfig = require('./config/passport');
+app.use(passportConfig.initialize());
+app.use(passportConfig.session());
 
 
 
@@ -188,6 +196,7 @@ app.use('/api/admin/profile', adminProfileRoutes);
 // Backward-compat aliases (optional)
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminsRoutes);
+// ✅ Google OAuth routes are now in authRoutes
 
 // Root endpoint
 app.get('/', (req, res) => {

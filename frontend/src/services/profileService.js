@@ -153,19 +153,35 @@ export const updateCurrentUserProfile = async (profileData) => {
   try {
     console.log('📝 Updating current user profile:', { ...profileData, email: '[PROTECTED]' });
     
-    // Transform frontend form data to backend expected format
+    // Transform frontend form data to backend expected format (default empties)
     const transformedData = {
       name: `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim(),
-
       bio: profileData.bio || '',
-      // Transform address to location format expected by backend
+      gender: profileData.gender || null,
+      dateOfBirth: profileData.dateOfBirth || null,
+      phone: profileData.phone || '',
+      alternatePhone: profileData.alternatePhone || '',
+      languages: Array.isArray(profileData.languages) ? profileData.languages : [],
+      interests: Array.isArray(profileData.interests) ? profileData.interests : [],
+      emergencyContact: {
+        name: profileData.emergencyContact?.name || '',
+        phone: profileData.emergencyContact?.phone || '',
+        relationship: profileData.emergencyContact?.relationship || ''
+      },
+      socialMedia: {
+        twitter: profileData.socialMedia?.twitter || '',
+        linkedin: profileData.socialMedia?.linkedin || '',
+        facebook: profileData.socialMedia?.facebook || ''
+      },
+      // Address to location
       location: {
         country: profileData.address?.country || '',
         state: profileData.address?.state || '',
         city: profileData.address?.city || '',
         address: profileData.address?.street || ''
       },
-      phone: profileData.phone || ''
+      nationality: profileData.nationality || '',
+      occupation: profileData.occupation || ''
     };
     
     console.log('🔄 Transformed data for backend:', { ...transformedData, email: '[PROTECTED]' });

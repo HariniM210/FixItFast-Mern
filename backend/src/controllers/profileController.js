@@ -62,56 +62,36 @@ const getProfileByUserId = async (req, res) => {
  */
 const updateProfile = async (req, res) => {
   try {
-    // Check for validation errors
+    // Log incoming payload for debugging
+    console.log('📝 updateProfile payload:', JSON.stringify(req.body));
+
+    // Check for validation errors (kept but relaxed rules above)
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       console.error('❌ Validation errors:', errors.array());
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
+      return res.status(400).json({ success: false, message: 'Validation failed', errors: errors.array() });
     }
 
-    const userId = req.user.id; // From authenticateToken middleware
-    const { 
-      name, 
-      email, 
-      dateOfBirth, 
-      gender,
-      nationality,
-      occupation,
-      phone, 
-      alternatePhone,
-      languages,
-      interests,
-      emergencyContact, 
-      socialMedia,
-      bio, 
-      location
-    } = req.body;
-    
-    // Check if user exists
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
+    const userId = req.user.id;
 
-    // Prepare user data with enhanced fields
-    const userData = {
-      name: name || user.name,
-      email: email || user.email,
+    // Ensure user exists
+    const user = await User.findById(userId).select('name email');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // Build $set object allowing optional fields to be empty
+    const { bio = '', gender = null, dateOfBirth = null, address = '', phone = '', location = {}, emergencyContact = {}, socialMedia = {}, nationality = '', occupation = '', languages = [], interests = [], alternatePhone = '' } = req.body || {};
+
+    const set = {
+      bio: bio || '',
       dateOfBirth: dateOfBirth || null,
-      gender: gender || null,
+      address: address || '',
+      phone: phone || '',
       nationality: nationality || '',
       occupation: occupation || '',
-      phone: phone || '',
       alternatePhone: alternatePhone || '',
       languages: Array.isArray(languages) ? languages : [],
       interests: Array.isArray(interests) ? interests : [],
+      gender: gender || null,
       emergencyContact: {
         name: emergencyContact?.name || '',
         phone: emergencyContact?.phone || '',
@@ -122,33 +102,25 @@ const updateProfile = async (req, res) => {
         linkedin: socialMedia?.linkedin || '',
         facebook: socialMedia?.facebook || ''
       },
-      bio: bio || '',
       location: {
         country: location?.country || '',
         state: location?.state || '',
         city: location?.city || '',
         address: location?.address || '',
-        pincode: location?.pincode || '',
-        latitude: location?.latitude || null,
-        longitude: location?.longitude || null
-      }
+      },
     };
 
-    console.log('🔄 Updating user profile directly...');
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      userData,
-      { 
-        new: true,
-        runValidators: true
-      }
-    ).select('-password -adminSecretKey'); // Exclude sensitive fields
+    // Upsert into Profile collection keyed by user
+    const profile = await Profile.findOneAndUpdate(
+      { user: userId },
+      {
+        $set: set,
+        $setOnInsert: { user: userId, name: user.name, email: user.email }
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: false }
+    );
 
-    res.status(200).json({
-      success: true,
-      message: 'Profile saved successfully',
-      data: updatedUser
-    });
+    return res.status(200).json({ success: true, message: 'Profile saved successfully', data: profile });
 
   } catch (error) {
     console.error('❌ Error updating profile:', error);

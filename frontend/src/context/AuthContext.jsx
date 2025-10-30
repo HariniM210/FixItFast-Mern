@@ -215,6 +215,36 @@ export const AuthProvider = ({ children }) => {
     setError('');
   };
 
+  // ✅ Google OAuth login method
+  const googleLogin = async (googleCredential) => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      // Send Google's credential token to backend for verification
+      const response = await authAPI.googleVerify(googleCredential);
+      
+      if (response.status === 200) {
+        const { token, user } = response.data;
+        authenticate(token, user);
+        console.log('✅ Google login successful:', user.email);
+        return { success: true, user };
+      } else {
+        throw new Error(response.data.message || 'Google authentication failed');
+      }
+      
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || err.message || 'Google authentication failed';
+      console.error('❌ Google login error:', errorMessage);
+      setError(errorMessage);
+      setIsAuthenticated(false);
+      setUser(null);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -225,7 +255,9 @@ export const AuthProvider = ({ children }) => {
     register,
     authenticate,
     logout,
-    clearError
+    clearError,
+    // ✅ Google OAuth method
+    googleLogin
   };
 
   return (

@@ -21,10 +21,10 @@ const router = express.Router();
  * Enhanced validation middleware for profile creation/update
  */
 const validateProfile = [
+  // Make name optional (if omitted, we will keep existing name)
   body('name')
+    .optional()
     .trim()
-    .notEmpty()
-    .withMessage('Full name is required')
     .isLength({ min: 2, max: 100 })
     .withMessage('Name must be between 2 and 100 characters'),
   
@@ -34,8 +34,8 @@ const validateProfile = [
     .normalizeEmail()
     .withMessage('Please provide a valid email address'),
   
-  body('dateOfBirth')
-    .optional()
+body('dateOfBirth')
+    .optional({ checkFalsy: true, nullable: true })
     .isISO8601()
     .withMessage('Please provide a valid date of birth')
     .custom((value) => {
@@ -53,8 +53,8 @@ const validateProfile = [
     .isInt({ min: 13, max: 120 })
     .withMessage('Age must be between 13 and 120'),
   
-  body('phone')
-    .optional()
+body('phone')
+    .optional({ checkFalsy: true, nullable: true })
     .trim()
     .matches(/^[\+]?[0-9\s\-\(\)]*$/)
     .withMessage('Please enter a valid phone number'),
@@ -65,8 +65,8 @@ const validateProfile = [
     .isLength({ max: 100 })
     .withMessage('Emergency contact name cannot exceed 100 characters'),
   
-  body('emergencyContact.phone')
-    .optional()
+body('emergencyContact.phone')
+    .optional({ checkFalsy: true, nullable: true })
     .trim()
     .matches(/^[\+]?[0-9\s\-\(\)]*$/)
     .withMessage('Please enter a valid emergency contact phone number'),
@@ -119,18 +119,18 @@ const validateProfile = [
     .isLength({ max: 20 })
     .withMessage('Pincode cannot exceed 20 characters'),
   
-  body('location.latitude')
-    .optional()
+body('location.latitude')
+    .optional({ checkFalsy: true, nullable: true })
     .isFloat({ min: -90, max: 90 })
     .withMessage('Latitude must be between -90 and 90'),
   
-  body('location.longitude')
-    .optional()
+body('location.longitude')
+    .optional({ checkFalsy: true, nullable: true })
     .isFloat({ min: -180, max: 180 })
     .withMessage('Longitude must be between -180 and 180'),
   
-  body('gender')
-    .optional()
+body('gender')
+    .optional({ checkFalsy: true, nullable: true })
     .isIn(['male', 'female', 'other', 'prefer-not-to-say'])
     .withMessage('Invalid gender selection'),
   
@@ -174,20 +174,20 @@ const validateProfile = [
     .isLength({ max: 50 })
     .withMessage('Each interest cannot exceed 50 characters'),
   
-  body('socialMedia.twitter')
-    .optional()
+body('socialMedia.twitter')
+    .optional({ checkFalsy: true, nullable: true })
     .trim()
     .isURL()
     .withMessage('Please enter a valid Twitter URL'),
   
-  body('socialMedia.linkedin')
-    .optional()
+body('socialMedia.linkedin')
+    .optional({ checkFalsy: true, nullable: true })
     .trim()
     .isURL()
     .withMessage('Please enter a valid LinkedIn URL'),
   
-  body('socialMedia.facebook')
-    .optional()
+body('socialMedia.facebook')
+    .optional({ checkFalsy: true, nullable: true })
     .trim()
     .isURL()
     .withMessage('Please enter a valid Facebook URL'),

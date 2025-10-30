@@ -72,6 +72,7 @@ const Navbar = () => {
               <Link to="/admin/create-labour" className={`nav-link ${isActive('/admin/create-labour') ? 'active' : ''}`}>Create Labour</Link>
               <Link to="/admin/attendance" className={`nav-link ${isActive('/admin/attendance') ? 'active' : ''}`}>Attendance</Link>
               <Link to="/admin/profile" className={`nav-link ${isActive('/admin/profile') ? 'active' : ''}`}>Profile</Link>
+              <Link to="/admin/feedback-report" className={`nav-link ${isActive('/admin/feedback-report') ? 'active' : ''}`}>Feedback Report</Link>
               {user?.role === 'superadmin' && (
                 <>
                   <Link to="/admin/super-dashboard" className={`nav-link ${isActive('/admin/super-dashboard') ? 'active' : ''}`}>Super Dashboard</Link>

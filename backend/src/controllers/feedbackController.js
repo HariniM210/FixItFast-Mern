@@ -58,10 +58,11 @@ const createFeedback = async (req, res) => {
       });
     }
 
-    // Create new feedback
+// Create new feedback
     const newFeedback = new Feedback({
       user: userId,
       complaint: complaintId,
+      city: complaint.city || '',
       feedback: {
         satisfaction: feedback.satisfaction,
         resolutionMet: feedback.resolutionMet,

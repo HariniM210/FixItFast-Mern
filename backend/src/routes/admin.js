@@ -46,6 +46,11 @@ router.get('/reports/export.csv', authenticateToken, requireAdmin, reportsContro
 router.get('/reports/export.xlsx', authenticateToken, requireAdmin, reportsController.exportExcel);
 router.get('/reports/export.pdf', authenticateToken, requireAdmin, reportsController.exportPDF);
 
+// Feedback (Admin)
+const adminFeedbackController = require('../controllers/adminFeedbackController');
+router.get('/feedbacks', authenticateToken, requireAdmin, adminFeedbackController.getAllFeedbacks);
+router.get('/feedbacks/report', authenticateToken, requireAdmin, adminFeedbackController.downloadFeedbackReport);
+
 // Admins management
 router.get('/admins', authenticateToken, requireAdmin, listAdmins); // list admins (admin/superadmin)
 router.post('/create-admin', authenticateToken, requireSuperAdmin, createAdminBySuper);

@@ -107,23 +107,33 @@ const userSchema = new mongoose.Schema({
       trim: true
     }
   },
-  // Location fields (required for complaint routing)
+  // Location fields (required for complaint routing, optional for OAuth users)
   city: {
     type: String,
-    required: [true, 'City is required'],
+    required: function() {
+      return !this.googleId; // Only required if not a Google user
+    },
+    default: '',
     trim: true
   },
   district: {
     type: String,
-    required: [true, 'District is required'],
+    required: function() {
+      return !this.googleId; // Only required if not a Google user
+    },
+    default: '',
     trim: true
   },
   pincode: {
     type: String,
-    required: [true, 'Pincode is required'],
+    required: function() {
+      return !this.googleId; // Only required if not a Google user
+    },
+    default: '',
     trim: true,
     validate: {
       validator: function(v) {
+        if (!v) return true; // Allow empty for Google users
         return /^[0-9]{6}$/.test(v);
       },
       message: 'Pincode must be exactly 6 digits'
@@ -177,7 +187,9 @@ const userSchema = new mongoose.Schema({
   },
   emailVerified: {
     type: Boolean,
-    default: false
+    default: function() {
+      return !!this.googleId; // Google users are pre-verified
+    }
   },
   profilePicture: {
     type: String,

@@ -11,6 +11,12 @@ const feedbackSchema = new mongoose.Schema({
     ref: 'Complaint',
     required: [true, 'Complaint is required']
   },
+  // Denormalized city for admin-scoped queries (filled from complaint/user at creation time)
+  city: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   feedback: {
     satisfaction: {
       type: String,
@@ -121,6 +127,7 @@ feedbackSchema.index({ user: 1, complaint: 1 }, { unique: true });
 feedbackSchema.index({ complaint: 1, createdAt: -1 });
 feedbackSchema.index({ user: 1, createdAt: -1 });
 feedbackSchema.index({ isVisible: 1, createdAt: -1 });
+feedbackSchema.index({ city: 1, createdAt: -1 });
 
 // Virtual for overall satisfaction score (for analytics)
 feedbackSchema.virtual('satisfactionScore').get(function() {

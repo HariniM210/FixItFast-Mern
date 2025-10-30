@@ -114,6 +114,9 @@ export const authAPI = {
   requestPasswordReset: (email) => API.post('/auth/forgot-password', { email }),
   verifyResetToken: (token) => API.get('/auth/reset-password/verify', { params: { token } }),
   resetPassword: ({ token, password }) => API.post('/auth/reset-password', { token, password }),
+
+  // ✅ Google OAuth
+  googleVerify: (credential) => API.post('/auth/google/verify', { credential }),
 };
 
 // Labour API calls
@@ -211,6 +214,12 @@ export const complaintsAPI = {
   like: (id) => API.post(`/complaints/${id}/like`),
   getUserComplaints: (filters) => API.get('/complaints', { params: filters }),
   getProgressImages: (id) => API.get(`/complaints/${id}/progress-images`),
+};
+
+// Admin Feedback API
+export const adminFeedbackAPI = {
+  list: (params = {}) => API.get('/admin/feedbacks', { params }),
+  downloadExcel: () => API.get('/admin/feedbacks/report', { responseType: 'blob' }),
 };
 
 // Reports API calls (Admin & SuperAdmin only)
