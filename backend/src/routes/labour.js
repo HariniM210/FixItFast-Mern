@@ -146,6 +146,34 @@ router.put('/complaints/:id/status', authenticateToken, requireLabour, async (re
       });
     }
 
+    // If marking In Progress, update immediately (auto-move from Assigned -> In Progress)
+    if (status === 'In Progress') {
+      const oldStatus = complaint.status;
+      if (oldStatus !== 'In Progress') {
+        complaint.status = 'In Progress';
+        complaint.workStartedAt = complaint.workStartedAt || new Date();
+        complaint.statusHistory.push({
+          status: 'In Progress',
+          updatedBy: labourId,
+          note: remarks || `Work started by labour`
+        });
+        // Clear any previous pending status request
+        complaint.pendingStatusUpdate = undefined;
+      }
+
+      await complaint.save();
+
+      await complaint.populate('user', 'name email');
+      await complaint.populate('assignedBy', 'name email');
+
+      return res.json({
+        success: true,
+        message: 'Complaint moved to In Progress',
+        complaint
+      });
+    }
+
+    // For Resolved, create a pending status update for admin approval
     // Check if there's already a pending status update
     if (complaint.pendingStatusUpdate && 
         complaint.pendingStatusUpdate.newStatus && 
@@ -156,7 +184,6 @@ router.put('/complaints/:id/status', authenticateToken, requireLabour, async (re
       });
     }
 
-    // Create status update request
     complaint.pendingStatusUpdate = {
       newStatus: status,
       requestedBy: labourId,
@@ -168,10 +195,7 @@ router.put('/complaints/:id/status', authenticateToken, requireLabour, async (re
       adminNote: ''
     };
 
-    // Set work timestamps for tracking purposes
-    if (status === 'In Progress' && complaint.status !== 'In Progress') {
-      complaint.workStartedAt = new Date();
-    } else if (status === 'Resolved' && complaint.status !== 'Resolved') {
+    if (status === 'Resolved' && complaint.status !== 'Resolved') {
       complaint.workCompletedAt = new Date();
     }
 

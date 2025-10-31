@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { complaintsAPI, adminAPI } from '../../../services/api';
 import { COMPLAINT_STATUSES, STATUS_ORDER, STATUS_COLORS } from '../../../utils/constants';
-import AttachmentViewer from '../../../components/AttachmentViewer/AttachmentViewer';
+import UserComplaintDetailsModal from '../../../components/modals/UserComplaintDetailsModal';
 import axios from 'axios';
 import './ManageComplaints.css';
 
@@ -15,9 +15,30 @@ const ManageComplaints = () => {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [search, setSearch] = useState('');
   const [updatingId, setUpdatingId] = useState(null);
-  const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [detailsOpenId, setDetailsOpenId] = useState('');
 
   const statusOptions = STATUS_ORDER; // ['Pending', 'Inprogress', 'Resolved']
+
+  // Format user address/location safely (supports string or object)
+  const formatUserAddress = (u) => {
+    if (!u) return 'N/A';
+    const loc = u.location;
+    // If location is a string
+    if (typeof loc === 'string') return loc || 'N/A';
+    // If location is an object with known fields
+    if (loc && typeof loc === 'object') {
+      const parts = [loc.address, loc.city, loc.district || loc.state, loc.pincode || loc.zipcode, loc.country]
+        .filter(Boolean)
+        .map(String);
+      if (parts.length) return parts.join(', ');
+      // Try coordinates if present
+      if (loc.latitude && loc.longitude) return `${loc.latitude}, ${loc.longitude}`;
+    }
+    // Fallback to separate fields if present on user
+    const parts2 = [u.address, u.city, u.district, u.pincode, u.country].filter(Boolean).map(String);
+    if (parts2.length) return parts2.join(', ');
+    return 'N/A';
+  };
 
   const fetchComplaints = async () => {
     setLoading(true);
@@ -120,15 +141,56 @@ const ManageComplaints = () => {
 
   return (
     <div className="manage-complaints-container">
-      <div className="page-header">
-        <h1>📄 Manage Complaints</h1>
-        <p>Admin panel to review, update status, and manage all user complaints</p>
-        <div className="complaint-stats">
-          <span className="stat-badge">📈 Total: {complaints.length}</span>
-          <span className="stat-badge pending">⏳ Pending: {complaints.filter(c => c.status === COMPLAINT_STATUSES.PENDING).length}</span>
-          <span className="stat-badge progress">🔄 Inprogress: {complaints.filter(c => c.status === COMPLAINT_STATUSES.IN_PROGRESS).length}</span>
-          <span className="stat-badge resolved">✅ Resolved: {complaints.filter(c => c.status === COMPLAINT_STATUSES.RESOLVED).length}</span>
-        </div>
+      <div className="page-header elegant-gradient">
+        <h1 className="heading-title">📄 Manage Complaints</h1>
+        <p className="heading-subtitle">Admin control panel for complaint status management</p>
+
+        {/* Status Summary (previous elegant style) */}
+        {(() => {
+          const pending = complaints.filter(c => c.status === COMPLAINT_STATUSES.PENDING).length;
+          const inprogress = complaints.filter(c => c.status === COMPLAINT_STATUSES.IN_PROGRESS).length;
+          const resolved = complaints.filter(c => c.status === COMPLAINT_STATUSES.RESOLVED).length;
+          const total = Math.max(complaints.length, 1);
+          const pPct = Math.round((pending / total) * 100);
+          const iPct = Math.round((inprogress / total) * 100);
+          const rPct = Math.round((resolved / total) * 100);
+          return (
+            <div className="summary-section">
+              <div className="summary-header">📊 Complaint Status Overview</div>
+              <div className="bar-wrapper">
+                <div className="bar">
+                  <div className="bar-seg pending" style={{ width: `${pPct}%` }}><span>⏳ {pending}</span></div>
+                  <div className="bar-seg inprogress" style={{ width: `${iPct}%` }}><span>🔄 {inprogress}</span></div>
+                  <div className="bar-seg resolved" style={{ width: `${rPct}%` }}><span>✅ {resolved}</span></div>
+                </div>
+                <div className="total-card">
+                  <div className="total-num">{complaints.length}</div>
+                  <div className="total-label">Total Complaints</div>
+                </div>
+              </div>
+              <div className="summary-grid">
+                <div className="summary-item">
+                  <div className="dot dot-p"></div>
+                  <div>Pending</div>
+                  <div className="muted">({pending})</div>
+                  <div className="muted">{pPct.toFixed(0)}%</div>
+                </div>
+                <div className="summary-item">
+                  <div className="dot dot-i"></div>
+                  <div>Inprogress</div>
+                  <div className="muted">({inprogress})</div>
+                  <div className="muted">{iPct.toFixed(0)}%</div>
+                </div>
+                <div className="summary-item">
+                  <div className="dot dot-r"></div>
+                  <div>Resolved</div>
+                  <div className="muted">({resolved})</div>
+                  <div className="muted">{rPct.toFixed(0)}%</div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -158,19 +220,19 @@ const ManageComplaints = () => {
 
       {error && <div style={{ color: '#c53030', marginBottom: '0.5rem' }}>{error}</div>}
 
-      <div style={{ overflowX: 'auto', background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div className="table-wrap">
+        <table className="complaints-table">
           <thead>
-            <tr style={{ background: '#f7fafc' }}>
-              <th style={{ textAlign: 'left', padding: '10px', borderBottom: '1px solid #e2e8f0' }}>ID</th>
-              <th style={{ textAlign: 'left', padding: '10px', borderBottom: '1px solid #e2e8f0' }}>Title</th>
-              <th style={{ textAlign: 'left', padding: '10px', borderBottom: '1px solid #e2e8f0' }}>User</th>
-              <th style={{ textAlign: 'left', padding: '10px', borderBottom: '1px solid #e2e8f0' }}>Category</th>
-              <th style={{ textAlign: 'left', padding: '10px', borderBottom: '1px solid #e2e8f0' }}>Priority</th>
-              <th style={{ textAlign: 'left', padding: '10px', borderBottom: '1px solid #e2e8f0' }}>Description</th>
-              <th style={{ textAlign: 'left', padding: '10px', borderBottom: '1px solid #e2e8f0' }}>Date</th>
-              <th style={{ textAlign: 'left', padding: '10px', borderBottom: '1px solid #e2e8f0' }}>Status</th>
-              <th style={{ textAlign: 'left', padding: '10px', borderBottom: '1px solid #e2e8f0' }}>Actions</th>
+            <tr>
+              <th>ID</th>
+              <th>Title</th>
+              <th>User Information</th>
+              <th>Category</th>
+              <th>Priority</th>
+              <th>Description</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -188,121 +250,55 @@ const ManageComplaints = () => {
                   'Critical': '#dc2626'
                 };
                 return (
-                  <tr key={c._id} style={{ backgroundColor: updatingId === c._id ? '#fef3c7' : 'transparent' }}>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #edf2f7', fontSize: '12px', color: '#6b7280' }}>
-                      {c._id.substring(c._id.length - 6)}
+                  <tr key={c._id} className={`card-row ${updatingId === c._id ? 'updating' : ''}`}>
+                    <td className="id-col">{c._id.substring(c._id.length - 6)}</td>
+                    <td className="title-col">
+                      <div className="title-text">{c.title || 'Untitled'}</div>
+                      {c.description && (
+                        <div className="title-desc">{c.description}</div>
+                      )}
                     </td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #edf2f7', fontWeight: 'bold' }}>
-                      {c.title || 'Untitled'}
+                    <td className="user-col">
+                      <div 
+                        className="user-info-clickable"
+                        role="button"
+                        title="View user & complaint details"
+                        onClick={() => setDetailsOpenId(c._id)}
+                        style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '4px 8px', alignItems: 'center' }}
+                      >
+                        <div style={{ fontSize: 12, color: '#6b7280' }}>ID</div>
+                        <div style={{ fontFamily: 'monospace', fontSize: 12 }}>{c.user?._id || 'N/A'}</div>
+                        <div style={{ fontSize: 12, color: '#6b7280' }}>Name</div>
+                        <div>{c.user?.name || 'Unknown'}</div>
+                        <div style={{ fontSize: 12, color: '#6b7280' }}>Email</div>
+                        <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.user?.email || 'N/A'}</div>
+                        <div style={{ fontSize: 12, color: '#6b7280' }}>Phone</div>
+                        <div>{c.user?.phone || 'N/A'}</div>
+                        <div style={{ fontSize: 12, color: '#6b7280' }}>Address</div>
+                        <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{formatUserAddress(c.user)}</div>
+                      </div>
                     </td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #edf2f7' }}>
-                      {c.user?.name || 'Unknown'}
-                    </td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #edf2f7' }}>
-                      <span style={{ 
-                        background: '#f3f4f6', 
-                        padding: '2px 8px', 
-                        borderRadius: '12px', 
-                        fontSize: '12px' 
-                      }}>
-                        {c.category}
-                      </span>
-                    </td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #edf2f7' }}>
-                      <span style={{ 
-                        background: priorityColors[c.priority] || '#6b7280',
-                        color: 'white',
-                        padding: '2px 8px', 
-                        borderRadius: '12px', 
-                        fontSize: '12px',
-                        fontWeight: 'bold'
-                      }}>
-                        {c.priority || 'Medium'}
-                      </span>
-                    </td>
-                    <td style={{ 
-                      padding: '10px', 
-                      borderBottom: '1px solid #edf2f7', 
-                      maxWidth: '200px', 
-                      whiteSpace: 'nowrap', 
-                      overflow: 'hidden', 
-                      textOverflow: 'ellipsis' 
-                    }}>
-                      {c.description}
-                    </td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #edf2f7', fontSize: '12px' }}>
-                      {new Date(c.createdAt).toLocaleDateString()}
-                    </td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #edf2f7' }}>
+                    <td className="cat-col"><span className="cat-badge">{c.category}</span></td>
+                    <td className="pri-col"><span className="pri-badge" style={{ background: priorityColors[c.priority] || '#6b7280' }}>{c.priority || 'Medium'}</span></td>
+                    <td className="desc-col">{c.description}</td>
+                    <td className="date-col">{new Date(c.createdAt).toLocaleDateString()}</td>
+                    <td className="status-col">
                       <select 
                         value={c.status} 
                         disabled={updatingId === c._id} 
                         onChange={(e) => handleStatusChange(c._id, e.target.value)} 
-                        style={{ 
-                          padding: '4px 8px', 
-                          borderRadius: '6px', 
-                          fontSize: '12px',
-                          fontWeight: 'bold',
-                          backgroundColor: statusColors[c.status],
-                          color: 'white',
-                          border: 'none',
-                          cursor: updatingId === c._id ? 'not-allowed' : 'pointer'
-                        }}
+                        className="status-select"
+                        style={{ backgroundColor: statusColors[c.status] }}
                       >
                         {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
                       </select>
                       {updatingId === c._id && <span style={{ marginLeft: '8px' }}>🔄</span>}
                     </td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #edf2f7' }}>
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        <button 
-                          onClick={() => setSelectedComplaint(c)}
-                          style={{ 
-                            background: '#10b981', 
-                            color: 'white', 
-                            border: 'none', 
-                            padding: '4px 8px', 
-                            borderRadius: '4px', 
-                            fontSize: '11px',
-                            cursor: 'pointer'
-                          }}
-                          title="View details"
-                        >
-                          👁️
-                        </button>
-                        <button 
-                          onClick={() => {
-                            const note = prompt('Add admin note (optional):');
-                            if (note !== null) handleStatusChange(c._id, c.status, note);
-                          }}
-                          style={{ 
-                            background: '#3b82f6', 
-                            color: 'white', 
-                            border: 'none', 
-                            padding: '4px 8px', 
-                            borderRadius: '4px', 
-                            fontSize: '11px',
-                            cursor: 'pointer'
-                          }}
-                          title="Add note"
-                        >
-                          📝
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(c._id)} 
-                          style={{ 
-                            background: '#ef4444', 
-                            color: 'white', 
-                            border: 'none', 
-                            padding: '4px 8px', 
-                            borderRadius: '4px', 
-                            fontSize: '11px',
-                            cursor: 'pointer'
-                          }}
-                          title="Delete complaint"
-                        >
-                          🗑️
-                        </button>
+                    <td className="actions-col">
+                      <div className="action-btns">
+                        <button onClick={() => setDetailsOpenId(c._id)} className="btn view">👁️</button>
+                        <button onClick={() => { const note = prompt('Add admin note (optional):'); if (note !== null) handleStatusChange(c._id, c.status, note); }} className="btn note">📝</button>
+                        <button onClick={() => handleDelete(c._id)} className="btn del">🗑️</button>
                       </div>
                     </td>
                   </tr>
@@ -313,214 +309,49 @@ const ManageComplaints = () => {
         </table>
       </div>
 
-      {/* Complaint Detail Modal */}
-      {selectedComplaint && (
-        <div 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '2rem'
-          }}
-          onClick={() => setSelectedComplaint(null)}
-        >
-          <div 
-            style={{
-              background: 'white',
-              borderRadius: '12px',
-              maxWidth: '900px',
-              maxHeight: '90vh',
-              width: '100%',
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div style={{
-              padding: '1.5rem',
-              borderBottom: '1px solid #e5e7eb',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>Complaint Details</h3>
-              <button 
-                onClick={() => setSelectedComplaint(null)}
-                style={{
-                  background: '#f3f4f6',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: '32px',
-                  height: '32px',
-                  cursor: 'pointer',
-                  fontSize: '1rem'
-                }}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div style={{ flex: 1, overflow: 'auto', padding: '1.5rem' }}>
-              {/* Basic Info Grid */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-                gap: '1rem',
-                marginBottom: '1.5rem'
-              }}>
-                <div>
-                  <strong>📋 Complaint ID:</strong>
-                  <p style={{ margin: '0.25rem 0', fontFamily: 'monospace' }}>
-                    {selectedComplaint._id}
-                  </p>
-                </div>
-                <div>
-                  <strong>👤 User:</strong>
-                  <p style={{ margin: '0.25rem 0' }}>
-                    {selectedComplaint.user?.name || 'Unknown'} ({selectedComplaint.user?.email || 'No email'})
-                  </p>
-                </div>
-                <div>
-                  <strong>🏷️ Category:</strong>
-                  <p style={{ margin: '0.25rem 0' }}>{selectedComplaint.category}</p>
-                </div>
-                <div>
-                  <strong>⚡ Priority:</strong>
-                  <span style={{
-                    background: {
-                      'Low': '#10b981',
-                      'Medium': '#f59e0b',
-                      'High': '#ef4444',
-                      'Critical': '#dc2626'
-                    }[selectedComplaint.priority] || '#6b7280',
-                    color: 'white',
-                    padding: '2px 8px',
-                    borderRadius: '12px',
-                    fontSize: '0.875rem',
-                    fontWeight: 'bold',
-                    marginLeft: '0.5rem'
-                  }}>
-                    {selectedComplaint.priority}
-                  </span>
-                </div>
-                <div>
-                  <strong>📍 Location:</strong>
-                  <p style={{ margin: '0.25rem 0' }}>{selectedComplaint.location}</p>
-                </div>
-                <div>
-                  <strong>📅 Created:</strong>
-                  <p style={{ margin: '0.25rem 0' }}>
-                    {new Date(selectedComplaint.createdAt).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-
-              {/* Description */}
-              <div style={{ marginBottom: '1.5rem' }}>
-                <strong>📄 Description:</strong>
-                <div style={{
-                  background: '#f9fafb',
-                  padding: '1rem',
-                  borderRadius: '8px',
-                  border: '1px solid #e5e7eb',
-                  marginTop: '0.5rem',
-                  whiteSpace: 'pre-wrap'
-                }}>
-                  {selectedComplaint.description || 'No description provided'}
-                </div>
-              </div>
-
-              {/* Supporting Files */}
-              {selectedComplaint.attachments && selectedComplaint.attachments.length > 0 && (
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <AttachmentViewer attachments={selectedComplaint.attachments} compact={false} />
-                </div>
-              )}
-
-              {/* Admin Notes */}
-              {selectedComplaint.adminNote && (
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <strong>📝 Admin Notes:</strong>
-                  <div style={{
-                    background: '#fef3c7',
-                    padding: '1rem',
-                    borderRadius: '8px',
-                    border: '1px solid #f59e0b',
-                    marginTop: '0.5rem'
-                  }}>
-                    {selectedComplaint.adminNote}
-                  </div>
-                </div>
-              )}
-
-              {/* Status History */}
-              {selectedComplaint.statusHistory && selectedComplaint.statusHistory.length > 0 && (
-                <div>
-                  <strong>📈 Status History:</strong>
-                  <div style={{
-                    background: '#f9fafb',
-                    padding: '1rem',
-                    borderRadius: '8px',
-                    border: '1px solid #e5e7eb',
-                    marginTop: '0.5rem'
-                  }}>
-                    {selectedComplaint.statusHistory.map((history, index) => (
-                      <div key={index} style={{
-                        padding: '0.5rem 0',
-                        borderBottom: index < selectedComplaint.statusHistory.length - 1 ? '1px solid #e5e7eb' : 'none'
-                      }}>
-                        <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                          {new Date(history.updatedAt || history.createdAt).toLocaleString()}
-                        </div>
-                        <div style={{ fontWeight: 600 }}>Status: {history.status}</div>
-                        {history.note && (
-                          <div style={{ fontSize: '0.875rem', color: '#374151' }}>
-                            Note: {history.note}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div style={{
-              padding: '1.5rem',
-              borderTop: '1px solid #e5e7eb',
-              background: '#f9fafb',
-              display: 'flex',
-              gap: '1rem',
-              justifyContent: 'flex-end'
-            }}>
-              <button
-                onClick={() => setSelectedComplaint(null)}
-                style={{
-                  padding: '0.75rem 1.5rem',
-                  border: '1px solid #d1d5db',
-                  background: 'white',
-                  borderRadius: '8px',
-                  cursor: 'pointer'
-                }}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* User/Complaint Details Modal */}
+      <UserComplaintDetailsModal
+        complaintId={detailsOpenId}
+        open={!!detailsOpenId}
+        onClose={() => setDetailsOpenId('')}
+      />
     </div>
+  );
+};
+
+// Simple inline SVG line chart component (no external deps)
+const LineMiniChart = ({ data }) => {
+  const labels = ['Pending', 'In Progress', 'Resolved'];
+  const values = [data.pending || 0, data.inprogress || 0, data.resolved || 0];
+  const max = Math.max(1, ...values);
+  const points = values.map((v, i) => {
+    const x = 40 + i * 120; // spacing
+    const y = 150 - (v / max) * 120; // chart height 120px with bottom padding
+    return `${x},${y}`;
+  }).join(' ');
+  const gridY = [0.25, 0.5, 0.75, 1].map(r => 150 - r * 120);
+  return (
+    <svg width="420" height="170" viewBox="0 0 420 170" style={{ display: 'block' }}>
+      {/* Axes */}
+      <line x1="30" y1="150" x2="400" y2="150" stroke="#e5e7eb" />
+      <line x1="30" y1="30" x2="30" y2="150" stroke="#e5e7eb" />
+      {/* Grid lines */}
+      {gridY.map((gy, idx) => (
+        <line key={idx} x1="30" y1={gy} x2="400" y2={gy} stroke="#f1f5f9" />
+      ))}
+      {/* Data line */}
+      <polyline fill="none" stroke="#2563eb" strokeWidth="2" points={points} />
+      {/* Points */}
+      {values.map((v, i) => {
+        const x = 40 + i * 120;
+        const y = 150 - (v / max) * 120;
+        return <circle key={i} cx={x} cy={y} r="4" fill="#2563eb" stroke="#1d4ed8" />
+      })}
+      {/* Labels */}
+      {labels.map((l, i) => (
+        <text key={l} x={40 + i * 120} y={165} textAnchor="middle" style={{ fontSize: 11, fill: '#6b7280' }}>{l}</text>
+      ))}
+    </svg>
   );
 };
 

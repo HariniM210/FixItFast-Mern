@@ -195,7 +195,7 @@ function App() {
                       <Route path="/admin/super-dashboard" element={<SuperAdminRoute><SuperDashboard /></SuperAdminRoute>} />
                       <Route path="/admin/admins" element={<SuperAdminRoute><AdminsList /></SuperAdminRoute>} />
                       <Route path="/admin/complaints" element={<AdminRoute><ManageComplaints /></AdminRoute>} />
-                      <Route path="/admin/manage-complaints" element={<AdminRoute><ManageComplaintsNew /></AdminRoute>} />
+                      <Route path="/admin/manage-complaints" element={<AdminRoute><ManageComplaints /></AdminRoute>} />
                       <Route path="/admin/reports" element={<AdminRoute><Reports /></AdminRoute>} />
                       <Route path="/admin/assign-complaint" element={<AdminRoute><AssignComplaint /></AdminRoute>} />
                       <Route path="/admin/assigned-status" element={<AdminRoute><AssignedStatus /></AdminRoute>} />

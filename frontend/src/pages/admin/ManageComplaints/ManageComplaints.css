@@ -57,6 +57,58 @@
   border-color: rgba(16, 185, 129, 0.5);
 }
 
+.elegant-gradient { background: linear-gradient(180deg, #f7faff 0%, #eef6ff 100%); box-shadow: 0 8px 24px rgba(2,6,23,0.06); border-radius: 16px; }
+.heading-title { font-size: 2.2rem; margin: 0; background: linear-gradient(90deg,#0f172a,#1e293b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 1px 0 rgba(255,255,255,0.2); }
+.heading-subtitle { margin: 6px 0 14px 0; color: #64748b; }
+
+.summary-section { background: #fff; border:1px solid #e5e7eb; border-radius: 14px; padding: 14px 16px; box-shadow: 0 6px 14px rgba(2,6,23,0.04); }
+.summary-header { font-weight: 700; color: #0f172a; margin-bottom: 10px; }
+.bar-wrapper { display:flex; gap:16px; align-items:center; }
+.bar { flex:1; height: 28px; background:#f1f5f9; border-radius: 999px; overflow:hidden; display:flex; }
+.bar-seg { display:flex; align-items:center; justify-content:center; color:#0f172a; font-weight:700; font-size:12px; }
+.bar-seg.pending { background:#FCD34D; }
+.bar-seg.inprogress { background:#60A5FA; color:#0b132a; }
+.bar-seg.resolved { background:#34D399; }
+.total-card { width:120px; background:#6d28d9; color:#fff; border-radius:16px; text-align:center; padding:8px 10px; box-shadow:0 10px 20px rgba(109,40,217,.25); }
+.total-num { font-size:28px; font-weight:800; line-height:1; }
+.total-label { font-size:12px; opacity:.9; }
+.summary-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:12px; }
+.summary-item { display:flex; align-items:center; gap:8px; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:10px 12px; }
+.dot { width:10px; height:10px; border-radius:50%; }
+.dot-p{ background:#FCD34D; } .dot-i{ background:#60A5FA; } .dot-r{ background:#34D399; }
+.muted { color:#6b7280; font-size:12px; }
+
+.table-wrap { overflow-x:auto; background:transparent; }
+.complaints-table { width:100%; border-collapse: separate; border-spacing: 0 10px; }
+.complaints-table thead tr { background:#f7fafc; }
+.complaints-table th { text-align:left; padding:12px; color:#0f172a; font-weight:700; border-bottom:1px solid #e2e8f0; font-size:13px; }
+.complaints-table tbody .card-row td { background:#fff; padding:12px; border-top:1px solid #edf2f7; border-bottom:1px solid #edf2f7; }
+.complaints-table tbody .card-row td:first-child { border-left:1px solid #edf2f7; border-top-left-radius:12px; border-bottom-left-radius:12px; }
+.complaints-table tbody .card-row td:last-child { border-right:1px solid #edf2f7; border-top-right-radius:12px; border-bottom-right-radius:12px; }
+.complaints-table tbody .card-row { box-shadow: 0 4px 12px rgba(2,6,23,0.06); transition: transform .2s ease, box-shadow .2s ease; }
+.complaints-table tbody .card-row:hover td { box-shadow: 0 6px 16px rgba(2,6,23,0.10); }
+.complaints-table tbody .card-row:hover { transform: translateY(-2px); }
+
+.id-col { font-size:12px; color:#6b7280; }
+.title-col .title-text { font-weight:700; }
+.title-col .title-desc { color:#6b7280; font-size:12px; margin-top:4px; max-width:360px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.user-col { min-width:260px; }
+.cat-badge { background:#f3f4f6; padding:2px 8px; border-radius:12px; font-size:12px; }
+.pri-badge { color:#fff; padding:2px 8px; border-radius:12px; font-size:12px; font-weight:700; }
+.desc-col { max-width:220px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.date-col { font-size:12px; color:#374151; }
+.status-select { padding:6px 10px; border-radius:8px; font-size:12px; font-weight:700; color:#0f172a; border:none; cursor:pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.06); transition: transform .15s ease, box-shadow .15s ease; }
+.status-select:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(0,0,0,0.10); }
+.status-select option { color:#0f172a; }
+.actions-col .action-btns { display:flex; gap:6px; }
+.actions-col .btn { border:none; padding:6px 8px; border-radius:6px; color:#fff; cursor:pointer; font-size:12px; }
+.actions-col .btn.view{ background:#10b981; }
+.actions-col .btn.note{ background:#3b82f6; }
+.actions-col .btn.del{ background:#ef4444; }
+
+.user-info-clickable { cursor: pointer; border-radius: 8px; }
+.user-info-clickable:hover { background: #F8FAFC; }
+
 /* Responsive design */
 @media (max-width: 768px) {
   .manage-complaints-container {
@@ -82,7 +134,7 @@
 
 .manage-complaints-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: #F9FAFB; /* light pastel background */
   padding: 2rem;
 }
 

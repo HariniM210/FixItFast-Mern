@@ -117,13 +117,18 @@ const AdminDashboard = () => {
   const dashboardStats = React.useMemo(() => {
     if (adminStats && adminStats.statistics) {
       // Use admin stats from API for accurate system-wide counts
-      const stats = adminStats.statistics;
+      const s = adminStats.statistics || {};
+      const pending = s.pendingComplaints ?? 0;
+      const assigned = s.assignedComplaints ?? 0;
+      const inProgress = s.inProgressComplaints ?? 0;
+      const resolved = s.resolvedComplaints ?? 0;
+      const total = pending + assigned + inProgress + resolved; // Ensure total equals sum
       return {
-        totalComplaints: stats.totalComplaints || 0,
-        pending: stats.pendingComplaints || 0,
-        assigned: stats.assignedComplaints || 0,
-        inProgress: stats.inProgressComplaints || 0,
-        resolved: stats.resolvedComplaints || 0,
+        totalComplaints: total,
+        pending,
+        assigned,
+        inProgress,
+        resolved,
         newToday: complaints.filter(c => {
           const today = new Date().toDateString();
           const complaintDate = new Date(c.createdAt || c.date).toDateString();
@@ -132,12 +137,17 @@ const AdminDashboard = () => {
       };
     } else {
       // Fallback to calculated stats from complaints array
+      const pending = complaints.filter(c => c.status === COMPLAINT_STATUSES.PENDING).length;
+      const assigned = complaints.filter(c => c.status === COMPLAINT_STATUSES.ASSIGNED).length;
+      const inProgress = complaints.filter(c => c.status === COMPLAINT_STATUSES.IN_PROGRESS).length;
+      const resolved = complaints.filter(c => c.status === COMPLAINT_STATUSES.RESOLVED).length;
+      const total = pending + assigned + inProgress + resolved; // Ensure total equals sum
       return {
-        totalComplaints: complaints.length,
-        pending: complaints.filter(c => c.status === COMPLAINT_STATUSES.PENDING).length,
-        assigned: complaints.filter(c => c.status === COMPLAINT_STATUSES.ASSIGNED).length,
-        inProgress: complaints.filter(c => c.status === COMPLAINT_STATUSES.IN_PROGRESS).length,
-        resolved: complaints.filter(c => c.status === COMPLAINT_STATUSES.RESOLVED).length,
+        totalComplaints: total,
+        pending,
+        assigned,
+        inProgress,
+        resolved,
         newToday: complaints.filter(c => {
           const today = new Date().toDateString();
           const complaintDate = new Date(c.createdAt || c.date).toDateString();

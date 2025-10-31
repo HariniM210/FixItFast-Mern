@@ -24,6 +24,22 @@ const ManageComplaintsNew = () => {
   const [adminNote, setAdminNote] = useState('');
   const [detailsOpenId, setDetailsOpenId] = useState('');
 
+  const openStatusModal = (complaint) => {
+    setSelectedComplaint(complaint);
+    setAdminNote(`Status change for ${complaint.title || 'complaint'}`);
+    setShowModal(true);
+  };
+
+  // Prevent background scroll when any modal is open
+  useEffect(() => {
+    const anyOpen = showModal || !!detailsOpenId;
+    if (anyOpen) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = prev; };
+    }
+  }, [showModal, detailsOpenId]);
+
   const fetchComplaints = async () => {
     setLoading(true);
     setError('');
@@ -177,7 +193,7 @@ const ManageComplaintsNew = () => {
   console.log('🔍 Inprogress complaints:', inprogressComplaints.map(c => ({ id: c._id.slice(-6), status: c.status, title: c.title })));
 
   return (
-    <div className="manage-complaints-new">
+    <div className="manage-complaints-new bg-gradient-to-b from-gray-50 to-blue-50 min-h-screen">
       <div className="page-header">
         <h1>🎛️ Manage Complaints</h1>
         <p>Admin control panel for complaint status management</p>
@@ -330,117 +346,134 @@ const ManageComplaintsNew = () => {
         </div>
       )}
 
-      {/* Complaints Table */}
-      <div className="complaints-table-container">
-        <div className="table-wrapper">
-          <table className="complaints-table">
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>User Information</th>
-                <th>Category</th>
-                <th>Priority</th>
-                <th>Location</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="9" className="loading-cell">
-                    🔄 Loading complaints...
-                  </td>
-                </tr>
-              ) : complaints.length === 0 ? (
-                <tr>
-                  <td colSpan="9" className="empty-cell">
-                    📝 No complaints found
-                  </td>
-                </tr>
-              ) : (
-                complaints.map((complaint) => (
-                  <tr 
-                    key={complaint._id} 
-                    className={updatingId === complaint._id ? 'updating' : ''}
-                  >
-                    <td className="title-cell">
-                      <div className="complaint-title">
-                        {complaint.title || 'Untitled'}
-                        {complaint.description && (
-                          <div className="complaint-description">
-                            {complaint.description.length > 100 
-                              ? complaint.description.substring(0, 100) + '...'
-                              : complaint.description
-                            }
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="user-info-cell">
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setDetailsOpenId(complaint._id)}
-                        onKeyDown={(e)=>{ if(e.key==='Enter' || e.key===' ') setDetailsOpenId(complaint._id);} }
-                        style={{ outline: 'none' }}
-                      >
-                        <UserInfoCard 
-                          complaint={complaint}
-                          compact={true}
-                          showContactInfo={true}
-                        />
-                      </div>
-                    </td>
-                    <td>
-                      <span className="category-badge">
-                        {complaint.category || 'Uncategorized'}
+      {/* Complaints Cards */}
+      <div className="complaints-container">
+        {loading ? (
+          <div className="loading-state">
+            <div className="loading-spinner">🔄</div>
+            <p>Loading complaints...</p>
+          </div>
+        ) : complaints.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">📝</div>
+            <h3>No complaints found</h3>
+            <p>Try adjusting your search or filter criteria</p>
+          </div>
+        ) : (
+          <div className="complaints-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {complaints.map((complaint) => (
+              <div 
+                key={complaint._id} 
+                className={`complaint-card glass-card animate-fadeIn ${updatingId === complaint._id ? 'updating' : ''}`}
+              >
+                {/* Card Header */}
+                <div className="card-header">
+                  <div className="complaint-info">
+                    <h3 className="complaint-title">
+                      {complaint.title || 'Untitled'}
+                    </h3>
+                    <div className="complaint-meta">
+                      <span className="complaint-id">
+                        <span className="id-prefix">CPL-</span>
+                        <span className="id-number">{complaint._id.slice(-8)}</span>
                       </span>
-                    </td>
-                    <td>
-                      <span className={`priority-badge priority-${(complaint.priority || 'medium').toLowerCase()}`}>
-                        {complaint.priority || 'Medium'}
+                      <span className="complaint-date">
+                        📅 {new Date(complaint.createdAt).toLocaleDateString()}
                       </span>
-                    </td>
-                    <td className="location-cell">{complaint.location || 'No location'}</td>
-                    <td className="date-cell">
-                      {new Date(complaint.createdAt).toLocaleDateString()}
-                    </td>
-                    <td>
-                      <div className="status-cell">
-                        <span 
-                          className={`status-badge status-${complaint.status.toLowerCase()}`}
-                          style={{ backgroundColor: getStatusColor(complaint.status) }}
-                        >
-                          {getStatusIcon(complaint.status)} {complaint.status}
-                        </span>
+                    </div>
+                  </div>
+                  <div className="status-section">
+                    <span className={`status-badge status-${(complaint.status || '').toLowerCase().replace(/\s+/g,'-')}`}>
+                      {getStatusIcon(complaint.status)} {complaint.status}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Card Content */}
+                <div className="card-content">
+                  {complaint.description && (
+                    <div className="complaint-description">
+                      {complaint.description.length > 120 
+                        ? complaint.description.substring(0, 120) + '...'
+                        : complaint.description
+                      }
+                    </div>
+                  )}
+                  
+                  <div className="complaint-details">
+                    <div className="info-row">
+                      <div className="info-label">📍 Location</div>
+                      <div className="info-value">{complaint.location || 'Not specified'}</div>
+                    </div>
+                    <div className="info-row">
+                      <div className="info-label">📂 Category</div>
+                      <div className="info-value">
+                        <span className="category-badge">{complaint.category || 'Uncategorized'}</span>
                       </div>
-                    </td>
-                    <td>
-                      <div className="action-buttons">
-                        {STATUS_ORDER.map((status) => (
-                          <button
-                            key={status}
-                            onClick={() => handleStatusChange(complaint, status)}
-                            disabled={updatingId === complaint._id || complaint.status === status}
-                            className={`status-action-btn ${status.toLowerCase()}`}
-                            title={`Change to ${status}`}
-                          >
-                            {getStatusIcon(status)}
-                          </button>
-                        ))}
-                        {updatingId === complaint._id && (
-                          <span className="updating-indicator">🔄</span>
-                        )}
+                    </div>
+                    <div className="info-row">
+                      <div className="info-label">⚡ Priority</div>
+                      <div className="info-value">
+                        <span className={`priority-badge priority-${(complaint.priority || 'medium').toLowerCase()}`}>{complaint.priority || 'Medium'}</span>
                       </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                    <div className="info-row">
+                      <div className="info-label">🏷️ Status</div>
+                      <div className="info-value">
+                        <span className={`status-badge status-${(complaint.status || '').toLowerCase().replace(/\s+/g,'-')}`}>{getStatusIcon(complaint.status)} {complaint.status}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* User Info Section */}
+                <div className="user-info-section">
+                  <div className="user-info-header">
+                    <h4>👤 User Information</h4>
+                    <button 
+                      className="view-details-btn"
+                      onClick={() => setDetailsOpenId(complaint._id)}
+                      title="View full details"
+                    >
+                      View Details
+                    </button>
+                  </div>
+                  <UserInfoCard 
+                    complaint={complaint}
+                    compact={true}
+                    showContactInfo={true}
+                  />
+                </div>
+
+                {/* Card Actions */}
+                <div className="card-actions">
+                  <div className="action-buttons">
+                    <button
+                      onClick={() => setDetailsOpenId(complaint._id)}
+                      className="btn-secondary"
+                      title="View user & complaint details"
+                    >
+                      👁️ <span className="btn-text">View Details</span>
+                    </button>
+                    <button
+                      onClick={() => openStatusModal(complaint)}
+                      className="btn-primary"
+                      title="Update complaint status"
+                    >
+                      ✏️ <span className="btn-text">Update Status</span>
+                    </button>
+                  </div>
+                  {updatingId === complaint._id && (
+                    <div className="updating-indicator">
+                      <span className="spinner">🔄</span>
+                      <span>Updating...</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Status Change Modal */}
@@ -501,15 +534,29 @@ const ManageComplaintsNew = () => {
                 <div className="status-info-section">
                   <div className="status-change-info">
                     <p><strong>Current Status:</strong> 
-                      <span className={`status-badge status-${selectedComplaint.status.toLowerCase()}`}>
+                      <span className={`status-badge status-${selectedComplaint.status.toLowerCase().replace(/\s+/g,'-')}`}>
                         {getStatusIcon(selectedComplaint.status)} {selectedComplaint.status}
                       </span>
                     </p>
-                    <p><strong>New Status:</strong> 
-                      <span className={`status-badge status-${selectedComplaint.newStatus.toLowerCase()}`}>
-                        {getStatusIcon(selectedComplaint.newStatus)} {selectedComplaint.newStatus}
-                      </span>
-                    </p>
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:'0.5rem', alignItems:'center' }}>
+                      <strong>Select New Status:</strong>
+                      {STATUS_ORDER.map((s) => (
+                        <button
+                          key={s}
+                          className={`status-option-btn ${selectedComplaint.newStatus === s ? 'active' : ''}`}
+                          onClick={() => setSelectedComplaint(prev => ({ ...prev, newStatus: s }))}
+                        >
+                          {getStatusIcon(s)} {s}
+                        </button>
+                      ))}
+                    </div>
+                    {selectedComplaint.newStatus && (
+                      <p style={{ marginTop: 8 }}><strong>New Status:</strong> 
+                        <span className={`status-badge status-${selectedComplaint.newStatus.toLowerCase().replace(/\s+/g,'-')}`}>
+                          {getStatusIcon(selectedComplaint.newStatus)} {selectedComplaint.newStatus}
+                        </span>
+                      </p>
+                    )}
                   </div>
                   
                   {/* Complaint Location and Details */}
@@ -546,7 +593,12 @@ const ManageComplaintsNew = () => {
               <button onClick={() => setShowModal(false)} className="cancel-btn">
                 Cancel
               </button>
-              <button onClick={confirmStatusChange} className="confirm-btn">
+              <button 
+                onClick={confirmStatusChange} 
+                className="confirm-btn"
+                disabled={!selectedComplaint?.newStatus}
+                title={!selectedComplaint?.newStatus ? 'Select a new status first' : 'Confirm change'}
+              >
                 Confirm Change
               </button>
             </div>

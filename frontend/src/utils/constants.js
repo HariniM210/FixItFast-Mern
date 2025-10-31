@@ -18,10 +18,10 @@ export const STATUS_ORDER = [
 
 // Status colors for UI
 export const STATUS_COLORS = {
-  [COMPLAINT_STATUSES.PENDING]: '#fbbf24',     // Yellow
+  [COMPLAINT_STATUSES.PENDING]: '#FCD34D',     // Yellow (as per design)
   [COMPLAINT_STATUSES.ASSIGNED]: '#8b5cf6',    // Purple
-  [COMPLAINT_STATUSES.IN_PROGRESS]: '#3b82f6', // Blue  
-  [COMPLAINT_STATUSES.RESOLVED]: '#10b981'     // Green
+  [COMPLAINT_STATUSES.IN_PROGRESS]: '#60A5FA', // Blue (as per design)
+  [COMPLAINT_STATUSES.RESOLVED]: '#34D399'     // Green (as per design)
 };
 
 // Status icons for UI
